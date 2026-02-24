@@ -1,0 +1,33 @@
+{
+    "name": "vendor/mcp-server",
+    "description": "MCP Server implementation in PHP 8.1",
+    "type": "project",
+    "require": {
+        "php"              : ">=8.1",
+        "psr/log"          : "^3.0",
+        "amphp/http-server": "^3.4",
+        "amphp/process"    : "^2.0",
+        "amphp/socket"     : "^2.3",
+        "amphp/log"        : "^2.0",
+        "monolog/monolog"  : "^3.0",
+        "revolt/event-loop": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\modules\\neuron\\mcp\\": "",
+            "app\\modules\\neuron\\mcp\\interfaces\\": "interfaces/",
+            "app\\modules\\neuron\\mcp\\commands\\": "commands/",
+            "app\\modules\\neuron\\mcp\\resources\\": "resources/",
+            "app\\modules\\neuron\\mcp\\log\\": "log/",
+            "app\\modules\\neuron\\mcp\\client\\": "client/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Matvey L.",
+            "email": "mcp@example.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "keywords": ["mcp", "model-context-protocol", "ai", "llm", "server"]
+}

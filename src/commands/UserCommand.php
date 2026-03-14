@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Класс UserCommand
- * 
+ *
  * Пример команды для создания пользователя с полной валидацией входных параметров.
  * Демонстрирует использование JSON Schema для валидации и бизнес-логики.
  */
+
 namespace app\modules\neuron\mcp\commands;
 
 class UserCommand extends BaseCommand
@@ -17,10 +19,10 @@ class UserCommand extends BaseCommand
         $this->name = 'user.create';
         $this->description = 'Создание нового пользователя';
     }
-    
+
     /**
      * Возвращает схему входных параметров для создания пользователя
-     * 
+     *
      * @return array Схема в формате JSON Schema
      */
     public function getInputSchema(): array
@@ -59,14 +61,14 @@ class UserCommand extends BaseCommand
             'additionalProperties' => false
         ];
     }
-    
+
     /**
      * Выполняет логику создания пользователя
-     * 
+     *
      * @param array $params Входные параметры (уже прошедшие валидации)
-     * 
+     *
      * @return array Результат создания пользователя
-     * 
+     *
      * @throws ValidationException Если email уже используется
      */
     protected function doExecute(array $params): array
@@ -80,10 +82,10 @@ class UserCommand extends BaseCommand
                 ]
             ]);
         }
-        
+
         // Имитация создания пользователя в базе данных
         $userId = uniqid('user_', true);
-        
+
         return [
             'id' => $userId,
             'name' => $params['name'],
@@ -98,12 +100,12 @@ class UserCommand extends BaseCommand
             ]
         ];
     }
-    
+
     /**
      * Проверяет, занят ли email (имитация проверки в базе данных)
-     * 
+     *
      * @param string $email Email для проверки
-     * 
+     *
      * @return bool true если email занят, false если доступен
      */
     private function isEmailTaken(string $email): bool

@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Класс CalculateCommand
- * 
+ *
  * Пример команды для выполнения математических операций.
  * Демонстрирует валидацию входных параметров и обработку ошибок.
  */
+
 namespace app\modules\neuron\mcp\commands;
 
 class CalculateCommand extends BaseCommand
@@ -17,10 +19,10 @@ class CalculateCommand extends BaseCommand
         $this->name = 'calculate';
         $this->description = 'Выполняет математические операции';
     }
-    
+
     /**
      * Возвращает схему входных параметров для команды calculate
-     * 
+     *
      * @return array Схема в формате JSON Schema
      */
     public function getInputSchema(): array
@@ -45,14 +47,14 @@ class CalculateCommand extends BaseCommand
             'required' => ['operation', 'a', 'b']
         ];
     }
-    
+
     /**
      * Выполняет математическую операцию
-     * 
+     *
      * @param array $params Входные параметры (уже прошедшие валидацию)
-     * 
+     *
      * @return array Результат вычисления
-     * 
+     *
      * @throws \InvalidArgumentException Если операция деления на ноль
      */
     protected function doExecute(array $params): array
@@ -60,7 +62,7 @@ class CalculateCommand extends BaseCommand
         $a = $params['a'];
         $b = $params['b'];
         $operation = $params['operation'];
-        
+
         switch ($operation) {
             case 'add':
                 $result = $a + $b;
@@ -80,7 +82,7 @@ class CalculateCommand extends BaseCommand
             default:
                 throw new \InvalidArgumentException('Неизвестная операция: ' . $operation);
         }
-        
+
         return [
             'result' => $result,
             'operation' => $operation,

@@ -1,4 +1,5 @@
 <?php
+
 namespace app\modules\neuron\mcp;
 
 use Amp\ByteStream\WritableResourceStream;
@@ -18,22 +19,21 @@ use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Socket\ServerSocketFactory;
 use Monolog\Logger;
 use Revolt\EventLoop;
-
 // Используем пространство имен MCP клиента
 use app\modules\neuron\mcp\client\MCPClient;
 
 /**
  * Продвинутый HTTP сервер для MCP на основе Amp
- * 
+ *
  * Использует Amp (асинхронную библиотеку) для высокой производительности
  * и пул процессов для выполнения MCP команд.
- * 
+ *
  * Требования:
  *   composer require amphp/http-server amphp/process amphp/socket
- * 
+ *
  * Использование:
  *   php http_server_amp.php [хост] [порт] [ключ_авторизации]
- * 
+ *
  * Примеры:
  *   php http_server_amp.php
  *   php http_server_amp.php 0.0.0.0 8080
@@ -50,7 +50,7 @@ class MCPHttpServerAmp
     private int $maxWorkers = 5;
     private int $activeConnections = 0;
     private int $startTime;
-    
+
     public function __construct(
         string $host = '0.0.0.0',
         int $port = 8080,
@@ -61,16 +61,16 @@ class MCPHttpServerAmp
         $this->authKey = $authKey;
         $this->mcpServerScript = $this->mcpServerScrip ?? __DIR__ . '/mcp_server.php';
         $this->startTime = time();
-        
+
         // Проверяем существование скрипта MCP сервера
         if (!file_exists($this->mcpServerScript)) {
             throw new \RuntimeException("MCP сервер не найден: " . $this->mcpServerScript);
         }
-        
+
         // Настраиваем логгер
         $this->setupLogger();
     }
-    
+
     /**
      * Настраивает логгер
      */
@@ -78,11 +78,11 @@ class MCPHttpServerAmp
     {
         $logHandler = new StreamHandler(new WritableResourceStream(STDOUT));
         $logHandler->setFormatter(new ConsoleFormatter());
-        
+
         $this->logger = new Logger('mcp-http-server');
         $this->logger->pushHandler($logHandler);
     }
-    
+
     /**
      * Запускает HTTP сервер
      */
@@ -94,7 +94,7 @@ class MCPHttpServerAmp
         // Создаем фабрику сокетов
         $serverSocketFactory = new ResourceServerSocketFactory();
         $clientSocketFactory = new SocketClientFactory($this->logger);
-        
+
         // Создаем обработчик ошибок
         $errorHandler = new DefaultErrorHandler();
 
@@ -132,26 +132,26 @@ class MCPHttpServerAmp
 
         $server->expose("{$this->host}:{$this->port}");
         $server->start($requestHandler, $errorHandler);
-        
+
         // Регистрируем обработчик сигналов для graceful shutdown
         $signalHandler = function (string $watcherId) use ($server) {
             $this->logger->info("Получен сигнал завершения, останавливаем сервер...");
             $server->stop();
             EventLoop::cancel($watcherId);
         };
-        
+
         EventLoop::onSignal(SIGINT, $signalHandler);
         EventLoop::onSignal(SIGTERM, $signalHandler);
-        
+
         // Выводим информацию о сервере
         $this->printServerInfo();
-        
+
         // Ждем завершения сервера
         EventLoop::run();
-        
+
         $this->logger->info("Сервер остановлен");
     }
-    
+
     /**
      * Выводит информацию о сервере
      */
@@ -181,10 +181,10 @@ class MCPHttpServerAmp
         echo "║   Ctrl+C              - Остановить сервер\n";
         echo "║   SIGTERM/SIGINT      - Graceful shutdown\n";
         echo "╚══════════════════════════════════════════════════════════╝\n\n";
-        
+
         $this->logger->info("Сервер готов к приему запросов");
     }
-    
+
     /**
      * Обрабатывает HTTP запрос (синхронная часть)
      */
@@ -192,35 +192,35 @@ class MCPHttpServerAmp
     {
         $path = $request->getUri()->getPath();
         $method = $request->getMethod();
-        
+
         $this->logger->debug("Запрос: {$method} {$path}");
-        
+
         // Маршрутизация
         switch (true) {
             case $method === 'GET' && $path === '/api/commands':
                 return $this->handleGetCommands($request);
-                
+
             case $method === 'GET' && $path === '/api/resources':
                 return $this->handleGetResources($request);
-                
+
             case $method === 'POST' && $path === '/api/execute':
                 return $this->handleExecuteCommandAsync($request);
-                
+
             case $method === 'GET' && $path === '/api/health':
                 return $this->handleHealthCheck($request);
-                
+
             case $method === 'GET' && $path === '/api/info':
                 return $this->handleServerInfo($request);
-                
+
             case $method === 'GET' && $path === '/api/metrics':
                 return $this->handleMetrics($request);
-                
+
             case $method === 'GET' && ($path === '/' || $path === '/api'):
                 return $this->handleApiRoot($request);
-                
+
             case $method === 'OPTIONS':
                 return $this->handleCorsPreflight($request);
-                
+
             default:
                 return $this->jsonResponse(
                     HttpStatus::NOT_FOUND,
@@ -228,7 +228,7 @@ class MCPHttpServerAmp
                 );
         }
     }
-    
+
     /**
      * Асинхронная обработка POST /api/execute
      */
@@ -237,47 +237,47 @@ class MCPHttpServerAmp
         try {
             // Асинхронно читаем тело запроса
             $body = $request->getBody()->buffer();
-            
+
             if (empty($body)) {
                 return $this->jsonResponse(HttpStatus::BAD_REQUEST, [
                     'status' => 'error',
                     'message' => 'Empty request body'
                 ]);
             }
-            
+
             $data = json_decode($body, true);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return $this->jsonResponse(HttpStatus::BAD_REQUEST, [
                     'status' => 'error',
                     'message' => 'Invalid JSON: ' . json_last_error_msg()
                 ]);
             }
-            
+
             if (!isset($data['command']) || !is_string($data['command'])) {
                 return $this->jsonResponse(HttpStatus::BAD_REQUEST, [
                     'status' => 'error',
                     'message' => 'Field "command" is required and must be a string'
                 ]);
             }
-            
+
             $command = $data['command'];
             $params = $data['params'] ?? [];
-            
+
             if (!is_array($params)) {
                 return $this->jsonResponse(HttpStatus::BAD_REQUEST, [
                     'status' => 'error',
                     'message' => 'Field "params" must be an array'
                 ]);
             }
-            
+
             // Добавляем ключ авторизации, если не указан
             if (!isset($params['auth'])) {
                 $params['auth'] = $this->authKey;
             }
-            
+
             $this->logger->info("Выполнение команды: {$command}");
-            
+
             // Выполняем команду через MCPClient
             $client = new MCPClient($this->mcpServerScript, $this->authKey);
             try {
@@ -285,13 +285,12 @@ class MCPHttpServerAmp
             } finally {
                 $client->close();
             }
-            
+
             return $this->jsonResponse(HttpStatus::OK, [
                 'status' => 'success',
                 'data' => $result,
                 'timestamp' => date('c')
             ]);
-            
         } catch (\Throwable $e) {
             $this->logger->error("Ошибка выполнения команды: " . $e->getMessage());
             return $this->jsonResponse(HttpStatus::INTERNAL_SERVER_ERROR, [
@@ -301,7 +300,7 @@ class MCPHttpServerAmp
             ]);
         }
     }
-    
+
     /**
      * Обрабатывает CORS preflight запрос
      */
@@ -314,7 +313,7 @@ class MCPHttpServerAmp
             'access-control-max-age' => '86400',
         ]);
     }
-    
+
     /**
      * Обрабатывает запрос получения списка команд
      */
@@ -327,7 +326,7 @@ class MCPHttpServerAmp
             } finally {
                 $client->close();
             }
-            
+
             return $this->jsonResponse(HttpStatus::OK, [
                 'status' => 'success',
                 'data' => [
@@ -336,7 +335,6 @@ class MCPHttpServerAmp
                 ],
                 'timestamp' => date('c')
             ]);
-            
         } catch (\Throwable $e) {
             $this->logger->error("Ошибка получения списка команд: " . $e->getMessage());
             return $this->jsonResponse(HttpStatus::INTERNAL_SERVER_ERROR, [
@@ -346,7 +344,7 @@ class MCPHttpServerAmp
             ]);
         }
     }
-    
+
     /**
      * Обрабатывает запрос получения списка ресурсов
      */
@@ -359,7 +357,7 @@ class MCPHttpServerAmp
             } finally {
                 $client->close();
             }
-            
+
             return $this->jsonResponse(HttpStatus::OK, [
                 'status' => 'success',
                 'data' => [
@@ -368,7 +366,6 @@ class MCPHttpServerAmp
                 ],
                 'timestamp' => date('c')
             ]);
-            
         } catch (\Throwable $e) {
             $this->logger->error("Ошибка получения списка ресурсов: " . $e->getMessage());
             return $this->jsonResponse(HttpStatus::INTERNAL_SERVER_ERROR, [
@@ -378,7 +375,7 @@ class MCPHttpServerAmp
             ]);
         }
     }
-    
+
     /**
      * Обрабатывает health check
      */
@@ -400,7 +397,7 @@ class MCPHttpServerAmp
             ]
         ]);
     }
-    
+
     /**
      * Обрабатывает информацию о сервере
      */
@@ -439,13 +436,13 @@ class MCPHttpServerAmp
                     'script_path' => $this->mcpServerScript,
                     'exists'      => file_exists($this->mcpServerScript),
                     'file_size'   => file_exists($this->mcpServerScript) ?
-                        filesize($this->mcpServerScript): 0
+                        filesize($this->mcpServerScript) : 0
                 ]
             ],
             'timestamp' => date('c')
         ]);
     }
-    
+
     /**
      * Обрабатывает метрики сервера
      */
@@ -477,14 +474,14 @@ class MCPHttpServerAmp
                 'started_iso' => date('c', $this->startTime)
             ]
         ];
-        
+
         return $this->jsonResponse(HttpStatus::OK, [
             'status' => 'success',
             'data' => $metrics,
             'timestamp' => date('c')
         ]);
     }
-    
+
     /**
      * Обрабатывает корневой путь API
      */
@@ -493,7 +490,7 @@ class MCPHttpServerAmp
         $memoryUsage = $this->formatBytes(memory_get_usage(true));
         $uptime = $this->getUptime();
         $currentYear = date('Y');
-        
+
         $html = <<<HTML
 <!DOCTYPE html>
 <html lang="ru">
@@ -739,7 +736,7 @@ HTML;
             $html
         );
     }
-    
+
     /**
      * Создает JSON ответ
      */
@@ -755,7 +752,7 @@ HTML;
             json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
         );
     }
-    
+
     /**
      * Форматирует байты в читаемый вид
      */
@@ -766,22 +763,22 @@ HTML;
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
-        
+
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
-    
+
     /**
      * Возвращает время работы сервера в читаемом формате
      */
     private function getUptime(): string
     {
         $uptime = time() - $this->startTime;
-        
+
         $days = floor($uptime / 86400);
         $hours = floor(($uptime % 86400) / 3600);
         $minutes = floor(($uptime % 3600) / 60);
         $seconds = $uptime % 60;
-        
+
         if ($days > 0) {
             return sprintf('%dд %dч %dм %dс', $days, $hours, $minutes, $seconds);
         } elseif ($hours > 0) {

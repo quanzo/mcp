@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Класс ValidationException
- * 
+ *
  * Исключение, выбрасываемое при ошибке валидации входных параметров команды.
  * Содержит детальную информацию об ошибках валидации.
  */
+
 namespace app\modules\neuron\mcp\commands;
 
 class ValidationException extends \RuntimeException
@@ -14,10 +16,10 @@ class ValidationException extends \RuntimeException
      * @var array
      */
     private array $validationErrors;
-    
+
     /**
      * Конструктор ValidationException
-     * 
+     *
      * @param array $validationErrors Массив ошибок валидации
      * @param string $message Сообщение об ошибке
      */
@@ -26,10 +28,10 @@ class ValidationException extends \RuntimeException
         $this->validationErrors = $validationErrors;
         parent::__construct($message . ': ' . json_encode($validationErrors));
     }
-    
+
     /**
      * Возвращает массив ошибок валидации
-     * 
+     *
      * @return array Массив ошибок валидации
      */
     public function getValidationErrors(): array

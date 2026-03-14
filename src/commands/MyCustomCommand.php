@@ -1,4 +1,5 @@
 <?php
+
 namespace app\modules\neuron\mcp\commands;
 
 use app\modules\neuron\mcp\commands\BaseCommand;
@@ -11,7 +12,7 @@ class MyCustomCommand extends BaseCommand
         $this->name = 'my.command';
         $this->description = 'Моя пользовательская команда';
     }
-    
+
     public function getInputSchema(): array
     {
         return [
@@ -25,7 +26,7 @@ class MyCustomCommand extends BaseCommand
             'required' => ['param1']
         ];
     }
-    
+
     protected function doExecute(array $params): array
     {
         // Логика команды

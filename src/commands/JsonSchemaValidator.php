@@ -1,26 +1,28 @@
 <?php
+
 /**
  * Класс JsonSchemaValidator
- * 
+ *
  * Реализует валидацию данных по JSON Schema.
  * Поддерживает основные типы данных и ограничения JSON Schema.
  */
+
 namespace app\modules\neuron\mcp\commands;
 
 class JsonSchemaValidator
 {
     /**
      * Валидирует данные по JSON Schema
-     * 
+     *
      * @param array $data Данные для валидации
      * @param array $schema Схема валидации в формате JSON Schema
-     * 
+     *
      * @return array Массив ошибок валидации. Пустой массив означает успешную валидации.
      */
     public static function validate(array $data, array $schema): array
     {
         $errors = [];
-        
+
         // Проверка типа
         if (isset($schema['type'])) {
             $typeErrors = self::validateType($data, $schema);
@@ -28,7 +30,7 @@ class JsonSchemaValidator
                 $errors = array_merge($errors, $typeErrors);
             }
         }
-        
+
         // Проверка обязательных полей
         if (isset($schema['required']) && is_array($schema['required'])) {
             foreach ($schema['required'] as $requiredField) {
@@ -40,7 +42,7 @@ class JsonSchemaValidator
                 }
             }
         }
-        
+
         // Проверка свойств объекта
         if (isset($schema['properties']) && is_array($schema['properties'])) {
             foreach ($schema['properties'] as $propertyName => $propertySchema) {
@@ -50,23 +52,23 @@ class JsonSchemaValidator
                 }
             }
         }
-        
+
         return $errors;
     }
-    
+
     /**
      * Валидирует тип данных
-     * 
+     *
      * @param mixed $value Значение для проверки
      * @param array $schema Схема валидации с указанием типа
-     * 
+     *
      * @return array Массив ошибок валидации типа
      */
     private static function validateType($value, array $schema): array
     {
         $errors = [];
         $type = $schema['type'];
-        
+
         switch ($type) {
             case 'string':
                 if (!is_string($value)) {
@@ -76,7 +78,7 @@ class JsonSchemaValidator
                     ];
                 }
                 break;
-                
+
             case 'number':
                 if (!is_numeric($value)) {
                     $errors[] = [
@@ -85,7 +87,7 @@ class JsonSchemaValidator
                     ];
                 }
                 break;
-                
+
             case 'integer':
                 if (!is_int($value)) {
                     $errors[] = [
@@ -94,7 +96,7 @@ class JsonSchemaValidator
                     ];
                 }
                 break;
-                
+
             case 'boolean':
                 if (!is_bool($value)) {
                     $errors[] = [
@@ -103,7 +105,7 @@ class JsonSchemaValidator
                     ];
                 }
                 break;
-                
+
             case 'array':
                 if (!is_array($value)) {
                     $errors[] = [
@@ -112,7 +114,7 @@ class JsonSchemaValidator
                     ];
                 }
                 break;
-                
+
             case 'object':
                 if (!is_array($value)) {
                     $errors[] = [
@@ -122,23 +124,23 @@ class JsonSchemaValidator
                 }
                 break;
         }
-        
+
         return $errors;
     }
-    
+
     /**
      * Валидирует свойство объекта по схеме
-     * 
+     *
      * @param mixed $value Значение свойства
      * @param array $schema Схема валидации свойства
      * @param string $propertyPath Путь к свойству (для вложенных свойств)
-     * 
+     *
      * @return array Массив ошибок валидации свойства
      */
     private static function validateProperty($value, array $schema, string $propertyPath): array
     {
         $errors = [];
-        
+
         if (isset($schema['type'])) {
             $propertyErrors = self::validateType($value, $schema);
             foreach ($propertyErrors as $error) {
@@ -146,7 +148,7 @@ class JsonSchemaValidator
                 $errors[] = $error;
             }
         }
-        
+
         // Проверка enum
         if (isset($schema['enum']) && is_array($schema['enum'])) {
             if (!in_array($value, $schema['enum'], true)) {
@@ -156,7 +158,7 @@ class JsonSchemaValidator
                 ];
             }
         }
-        
+
         // Проверка минимального значения
         if (isset($schema['minimum']) && is_numeric($value)) {
             if ($value < $schema['minimum']) {
@@ -166,7 +168,7 @@ class JsonSchemaValidator
                 ];
             }
         }
-        
+
         // Проверка максимального значения
         if (isset($schema['maximum']) && is_numeric($value)) {
             if ($value > $schema['maximum']) {
@@ -176,7 +178,7 @@ class JsonSchemaValidator
                 ];
             }
         }
-        
+
         // Проверка минимальной длины строки
         if (isset($schema['minLength']) && is_string($value)) {
             if (mb_strlen($value) < $schema['minLength']) {
@@ -186,7 +188,7 @@ class JsonSchemaValidator
                 ];
             }
         }
-        
+
         // Проверка максимальной длины строки
         if (isset($schema['maxLength']) && is_string($value)) {
             if (mb_strlen($value) > $schema['maxLength']) {
@@ -196,7 +198,7 @@ class JsonSchemaValidator
                 ];
             }
         }
-        
+
         // Рекурсивная проверка вложенных объектов
         if (isset($schema['properties']) && is_array($value)) {
             foreach ($schema['properties'] as $nestedProperty => $nestedSchema) {
@@ -210,7 +212,7 @@ class JsonSchemaValidator
                 }
             }
         }
-        
+
         // Рекурсивная проверка элементов массива
         if (isset($schema['items']) && is_array($value)) {
             foreach ($value as $index => $item) {
@@ -218,7 +220,7 @@ class JsonSchemaValidator
                 $errors = array_merge($errors, $itemErrors);
             }
         }
-        
+
         return $errors;
     }
 }

@@ -12,20 +12,20 @@
         "monolog/monolog"  : "^3.0",
         "revolt/event-loop": "^1.0"
     },
+    "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^13.0",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
     "autoload": {
         "psr-4": {
-            "app\\modules\\neuron\\mcp\\": "",
-            "app\\modules\\neuron\\mcp\\interfaces\\": "interfaces/",
-            "app\\modules\\neuron\\mcp\\commands\\": "commands/",
-            "app\\modules\\neuron\\mcp\\resources\\": "resources/",
-            "app\\modules\\neuron\\mcp\\log\\": "log/",
-            "app\\modules\\neuron\\mcp\\client\\": "client/"
+            "app\\modules\\neuron\\mcp\\": "src/"
         }
     },
     "authors": [
         {
             "name": "Matvey L.",
-            "email": "mcp@example.com"
+            "email": "lmv777@mail.ru"
         }
     ],
     "minimum-stability": "stable",

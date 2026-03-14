@@ -3,6 +3,7 @@
 namespace app\modules\neuron\mcp;
 
 use app\modules\neuron\mcp\client\MCPClient;
+use app\modules\neuron\mcp\http\HttpResponseFormatter;
 
 /**
  * HTTP сервер для MCP сервера
@@ -32,7 +33,7 @@ class MCPHttpServer
         $this->port = $port;
         $this->authKey = $authKey;
         $this->host = $host;
-        $this->mcpServerScript = __DIR__ . '/mcp_server.php';
+        $this->mcpServerScript = __DIR__ . '/../mcp_server.php';
 
         // Проверяем существование скрипта MCP сервера
         if (!file_exists($this->mcpServerScript)) {
@@ -98,14 +99,10 @@ class MCPHttpServer
     private function handleGetCommands(MCPClient $client): void
     {
         $commands = $client->listCommands();
-        echo json_encode([
-            'status' => 'success',
-            'data' => [
-                'commands' => $commands,
-                'count' => count($commands)
-            ],
-            'timestamp' => date('c')
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode(
+            HttpResponseFormatter::success(['commands' => $commands, 'count' => count($commands)]),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
@@ -114,14 +111,10 @@ class MCPHttpServer
     private function handleGetResources(MCPClient $client): void
     {
         $resources = $client->listResources();
-        echo json_encode([
-            'status' => 'success',
-            'data' => [
-                'resources' => $resources,
-                'count' => count($resources)
-            ],
-            'timestamp' => date('c')
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode(
+            HttpResponseFormatter::success(['resources' => $resources, 'count' => count($resources)]),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
@@ -163,15 +156,11 @@ class MCPHttpServer
         }
 
         try {
-            // Выполняем команду
             $result = $client->sendRequest($command, $params);
-
-            // Возвращаем результат в том же формате, что и MCP сервер
-            echo json_encode([
-                'status' => 'success',
-                'data' => $result,
-                'timestamp' => date('c')
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            echo json_encode(
+                HttpResponseFormatter::success($result),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
         } catch (\Throwable $e) {
             $this->sendError(500, 'Command execution failed', [
                 'message' => $e->getMessage(),
@@ -185,10 +174,8 @@ class MCPHttpServer
      */
     private function handleHealthCheck(): void
     {
-        echo json_encode([
-            'status' => 'success',
+        $data = [
             'message' => 'MCP HTTP Server is running',
-            'timestamp' => date('c'),
             'server' => [
                 'name' => 'MCP HTTP Server',
                 'version' => '1.0.0',
@@ -197,7 +184,11 @@ class MCPHttpServer
                 'port' => $this->port,
                 'auth_enabled' => !empty($this->authKey)
             ]
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        ];
+        echo json_encode(
+            HttpResponseFormatter::success($data),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
@@ -205,33 +196,33 @@ class MCPHttpServer
      */
     private function handleServerInfo(): void
     {
-        echo json_encode([
-            'status' => 'success',
-            'data' => [
-                'server' => [
-                    'name' => 'MCP HTTP Gateway',
-                    'version' => '1.0.0',
-                    'description' => 'HTTP интерфейс для MCP сервера',
-                    'php_version' => PHP_VERSION,
-                    'host' => $this->host,
-                    'port' => $this->port,
-                    'auth_enabled' => !empty($this->authKey),
-                    'auth_key_length' => strlen($this->authKey)
-                ],
-                'endpoints' => [
-                    'GET /api/commands' => 'Список доступных команд',
-                    'GET /api/resources' => 'Список доступных ресурсов',
-                    'POST /api/execute' => 'Выполнение команды',
-                    'GET /api/health' => 'Проверка состояния сервера',
-                    'GET /api/info' => 'Информация о сервере'
-                ],
-                'mcp_server' => [
-                    'script_path' => $this->mcpServerScript,
-                    'exists' => file_exists($this->mcpServerScript)
-                ]
+        $data = [
+            'server' => [
+                'name' => 'MCP HTTP Gateway',
+                'version' => '1.0.0',
+                'description' => 'HTTP интерфейс для MCP сервера',
+                'php_version' => PHP_VERSION,
+                'host' => $this->host,
+                'port' => $this->port,
+                'auth_enabled' => !empty($this->authKey),
+                'auth_key_length' => strlen($this->authKey)
             ],
-            'timestamp' => date('c')
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            'endpoints' => [
+                'GET /api/commands' => 'Список доступных команд',
+                'GET /api/resources' => 'Список доступных ресурсов',
+                'POST /api/execute' => 'Выполнение команды',
+                'GET /api/health' => 'Проверка состояния сервера',
+                'GET /api/info' => 'Информация о сервере'
+            ],
+            'mcp_server' => [
+                'script_path' => $this->mcpServerScript,
+                'exists' => file_exists($this->mcpServerScript)
+            ]
+        ];
+        echo json_encode(
+            HttpResponseFormatter::success($data),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
@@ -239,8 +230,7 @@ class MCPHttpServer
      */
     private function handleApiRoot(): void
     {
-        echo json_encode([
-            'status' => 'success',
+        $data = [
             'message' => 'MCP HTTP Server API',
             'endpoints' => [
                 '/api/commands' => 'GET - Список команд',
@@ -249,9 +239,12 @@ class MCPHttpServer
                 '/api/health' => 'GET - Проверка состояния',
                 '/api/info' => 'GET - Информация о сервере'
             ],
-            'documentation' => 'https://github.com/your-repo/mcp-server',
-            'timestamp' => date('c')
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            'documentation' => 'https://github.com/your-repo/mcp-server'
+        ];
+        echo json_encode(
+            HttpResponseFormatter::success($data),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**
@@ -260,19 +253,10 @@ class MCPHttpServer
     private function sendError(int $code, string $message, array $details = []): void
     {
         http_response_code($code);
-
-        $error = [
-            'status' => 'error',
-            'code' => $code,
-            'message' => $message,
-            'timestamp' => date('c')
-        ];
-
-        if (!empty($details)) {
-            $error['details'] = $details;
-        }
-
-        echo json_encode($error, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode(
+            HttpResponseFormatter::error($code, $message, $details),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
     }
 
     /**

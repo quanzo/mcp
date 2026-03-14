@@ -1,5 +1,7 @@
 <?php
 
+namespace app\modules\neuron\mcp\interfaces;
+
 /**
  * Интерфейс CommandInterface
  *
@@ -7,9 +9,6 @@
  * Каждая команда представляет собой отдельную операцию, которая может быть
  * выполнена сервером по запросу клиента.
  */
-
-namespace app\modules\neuron\mcp\interfaces;
-
 interface CommandInterface
 {
     /**
@@ -40,7 +39,7 @@ interface CommandInterface
      *
      * @return void
      *
-     * @throws \app\modules\neuron\mcp\commands\ValidationException Если параметры не соответствуют схеме
+     * @throws \app\modules\neuron\mcp\validation\ValidationException Если параметры не соответствуют схеме
      */
     public function validateInput(array $params): void;
 

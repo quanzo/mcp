@@ -6,7 +6,7 @@ namespace Tests\Unit\Commands;
 
 use PHPUnit\Framework\TestCase;
 use app\modules\neuron\mcp\commands\UserCommand;
-use app\modules\neuron\mcp\commands\ValidationException;
+use app\modules\neuron\mcp\validation\ValidationException;
 
 /**
  * Класс UserCommandTest

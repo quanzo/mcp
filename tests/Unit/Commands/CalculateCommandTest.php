@@ -70,7 +70,7 @@ class CalculateCommandTest extends TestCase
      */
     public function testUnknownOperationThrowsException(): void
     {
-        $this->expectException(\app\modules\neuron\mcp\commands\ValidationException::class);
+        $this->expectException(\app\modules\neuron\mcp\validation\ValidationException::class);
 
         $command = new CalculateCommand();
         $command->execute([

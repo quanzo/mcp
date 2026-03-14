@@ -2,9 +2,11 @@
 
 namespace app\modules\neuron\mcp\commands;
 
-use app\modules\neuron\mcp\commands\BaseCommand;
-use app\modules\neuron\mcp\commands\ValidationException;
-
+/**
+ * Класс MyCustomCommand
+ *
+ * Пример пользовательской команды с одним строковым параметром.
+ */
 class MyCustomCommand extends BaseCommand
 {
     public function __construct()

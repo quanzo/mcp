@@ -1,14 +1,13 @@
 <?php
 
+namespace app\modules\neuron\mcp\validation;
+
 /**
  * Класс JsonSchemaValidator
  *
  * Реализует валидацию данных по JSON Schema.
  * Поддерживает основные типы данных и ограничения JSON Schema.
  */
-
-namespace app\modules\neuron\mcp\commands;
-
 class JsonSchemaValidator
 {
     /**
@@ -49,6 +48,21 @@ class JsonSchemaValidator
                 if (array_key_exists($propertyName, $data)) {
                     $propertyErrors = self::validateProperty($data[$propertyName], $propertySchema, $propertyName);
                     $errors = array_merge($errors, $propertyErrors);
+                }
+            }
+        }
+
+        // Запрет дополнительных свойств
+        if (isset($schema['additionalProperties']) && $schema['additionalProperties'] === false && is_array($data)) {
+            $allowedKeys = isset($schema['properties']) && is_array($schema['properties'])
+                ? array_keys($schema['properties'])
+                : [];
+            foreach (array_keys($data) as $key) {
+                if (!in_array($key, $allowedKeys, true)) {
+                    $errors[] = [
+                        'property' => (string) $key,
+                        'message' => "Additional property '$key' is not allowed"
+                    ];
                 }
             }
         }
@@ -195,6 +209,17 @@ class JsonSchemaValidator
                 $errors[] = [
                     'property' => $propertyPath,
                     'message' => "String must be at most {$schema['maxLength']} characters long"
+                ];
+            }
+        }
+
+        // Проверка по регулярному выражению (JSON Schema pattern)
+        if (isset($schema['pattern']) && is_string($schema['pattern']) && is_string($value)) {
+            $regex = '#^(?:' . $schema['pattern'] . ')$#u';
+            if (@preg_match($regex, $value) !== 1) {
+                $errors[] = [
+                    'property' => $propertyPath,
+                    'message' => "String does not match pattern"
                 ];
             }
         }

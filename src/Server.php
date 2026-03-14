@@ -1,5 +1,14 @@
 <?php
 
+namespace app\modules\neuron\mcp;
+
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use app\modules\neuron\mcp\interfaces\CommandInterface;
+use app\modules\neuron\mcp\interfaces\ResourceInterface;
+use app\modules\neuron\mcp\validation\ValidationException;
+use app\modules\neuron\mcp\dto\JsonRpcRequest;
+
 /**
  * Класс Server
  *
@@ -8,17 +17,19 @@
  * управление ресурсами и авторизацию.
  * Работает через стандартные потоки ввода/вывода (stdio).
  */
-
-namespace app\modules\neuron\mcp;
-
-use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
-use app\modules\neuron\mcp\interfaces\CommandInterface;
-use app\modules\neuron\mcp\interfaces\ResourceInterface;
-use app\modules\neuron\mcp\commands\ValidationException;
-
 class Server
 {
+    /**
+     * Карта MCP-методов к обработчикам (имя метода класса)
+     *
+     * @var array<string, string>
+     */
+    private const MCP_METHODS = [
+        'mcp.listCommands' => 'handleListCommands',
+        'mcp.listResources' => 'handleListResources',
+        'mcp.readResource' => 'handleReadResource',
+    ];
+
     /**
      * Зарегистрированные команды
      * @var array<string, CommandInterface>
@@ -117,7 +128,8 @@ class Server
             } catch (\JsonException $e) {
                 $this->sendError(null, -32700, "Parse error", $e->getMessage());
             } catch (\Exception $e) {
-                $this->sendError($request['id'] ?? null, -32603, "Internal error", $e->getMessage());
+                $id = isset($request['id']) ? $request['id'] : null;
+                $this->sendError($id, -32603, "Internal error", $e->getMessage());
             }
         }
 
@@ -136,12 +148,13 @@ class Server
      */
     private function handleRequest(array $request): array
     {
-        $id     = $request['id'] ?? null;
-        $method = $request['method'] ?? '';
-        $params = $request['params'] ?? [];
+        $rpc = JsonRpcRequest::fromArray($request);
+        $id = $rpc->getId();
+        $method = $rpc->getMethod();
+        $params = $rpc->getParams();
 
         $this->logger->info('Processing request', [
-            'id'     => $id,
+            'id' => $id,
             'method' => $method
         ]);
 
@@ -151,34 +164,26 @@ class Server
             if ($requestAuthKey !== $this->authKey) {
                 throw new \RuntimeException('Authentication failed: Invalid auth key');
             }
-            // Удаляем auth из параметров, чтобы не мешал командам
             unset($params['auth']);
         }
 
-        // Обработка MCP методов
-        switch ($method) {
-            case 'mcp.listCommands':
-                return $this->handleListCommands($id);
-
-            case 'mcp.listResources':
-                return $this->handleListResources($id);
-
-            case 'mcp.readResource':
-                return $this->handleReadResource($id, $params);
-
-            default:
-                return $this->handleCommand($id, $method, $params);
+        if (isset(self::MCP_METHODS[$method])) {
+            $handler = self::MCP_METHODS[$method];
+            return $this->{$handler}($id, $params);
         }
+
+        return $this->handleCommand($id, $method, $params);
     }
 
     /**
      * Обрабатывает запрос списка команд
      *
      * @param string|null $id Идентификатор запроса
+     * @param array<string, mixed> $params Параметры (не используются)
      *
      * @return array Ответ со списком команд
      */
-    private function handleListCommands(?string $id): array
+    private function handleListCommands(?string $id, array $params = []): array
     {
         $commandsInfo = [];
 
@@ -205,10 +210,11 @@ class Server
      * Обрабатывает запрос списка ресурсов
      *
      * @param string|null $id Идентификатор запроса
+     * @param array<string, mixed> $params Параметры (не используются)
      *
      * @return array Ответ со списком ресурсов
      */
-    private function handleListResources(?string $id): array
+    private function handleListResources(?string $id, array $params = []): array
     {
         $resourcesInfo = [];
 
@@ -264,7 +270,7 @@ class Server
             'result'  => [
                 'uri'      => $resource->getUri(),
                 'mimeType' => $resource->getMimeType(),
-                'content'  => $resource->getContent(),
+                'content'  => $resource->getContent($uri),
                 'metadata' => $resource->getMetadata()
             ]
         ];
@@ -366,11 +372,11 @@ class Server
      * @param string|null $id Идентификатор запроса
      * @param int $code Код ошибки
      * @param string $message Сообщение об ошибке
-     * @param string|null $data Дополнительные данные об ошибке
+     * @param string|array|null $data Дополнительные данные об ошибке (строка или массив)
      *
      * @return void
      */
-    private function sendError(?string $id, int $code, string $message, ?string $data = null): void
+    private function sendError(?string $id, int $code, string $message, string|array|null $data = null): void
     {
         $error = [
             'jsonrpc' => '2.0',
@@ -381,7 +387,7 @@ class Server
             ]
         ];
 
-        if ($data) {
+        if ($data !== null && $data !== '') {
             $error['error']['data'] = $data;
         }
 

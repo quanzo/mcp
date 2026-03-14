@@ -16,6 +16,7 @@ use app\modules\neuron\mcp\log\FileLogger;
 use app\modules\neuron\mcp\commands\EchoCommand;
 use app\modules\neuron\mcp\commands\CalculateCommand;
 use app\modules\neuron\mcp\commands\UserCommand;
+use app\modules\neuron\mcp\commands\MyCustomCommand;
 use app\modules\neuron\mcp\resources\FileResource;
 
 // Проверка версии PHP
@@ -48,7 +49,8 @@ try {
     $server->registerCommand(new EchoCommand());
     $server->registerCommand(new CalculateCommand());
     $server->registerCommand(new UserCommand());
-    
+    $server->registerCommand(new MyCustomCommand());
+
     // Регистрация ресурсов
     $server->registerResource(
         new FileResource(
@@ -66,25 +68,35 @@ try {
         )
     );
     
-    // Создание конфигурационного файла, если не существует
+    // Загрузка или создание конфигурационного файла
     $configFile = __DIR__ . '/config/server.json';
+    $serverConfig = null;
+    if (file_exists($configFile)) {
+        $serverConfig = json_decode(file_get_contents($configFile), true);
+    }
     if (!file_exists($configFile)) {
-        file_put_contents($configFile, json_encode([
+        $defaultConfig = [
             'server' => [
                 'name' => 'MCP PHP Server',
                 'version' => '1.0.0',
                 'started_at' => date('c')
             ],
-            'commands' => ['echo', 'calculate', 'user.create'],
+            'commands' => ['echo', 'calculate', 'user.create', 'my.command'],
             'auth_required' => true
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        ];
+        file_put_contents($configFile, json_encode($defaultConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $serverConfig = $defaultConfig;
     }
-    
-    /**/
-    $logger->info("MCP сервер запущен. Auth key: $authKey");
-    $logger->info("Логи будут записываться в: " . __DIR__ . "/logs/mcp-server.log");
-    $logger->info("Ожидание запросов через stdio...");
-    //*/
+
+    $serverName = $serverConfig['server']['name'] ?? 'MCP PHP Server';
+    $serverVersion = $serverConfig['server']['version'] ?? '1.0.0';
+    $logger->info('MCP сервер запущен', [
+        'name' => $serverName,
+        'version' => $serverVersion,
+        'auth_key_set' => true
+    ]);
+    $logger->info('Логи записываются в ' . __DIR__ . '/logs/mcp-server.log');
+    $logger->info('Ожидание запросов через stdio...');
     
     // Запуск сервера
     $server->run();

@@ -1,16 +1,15 @@
 <?php
 
+namespace app\modules\neuron\mcp\resources;
+
+use app\modules\neuron\mcp\interfaces\ResourceInterface;
+
 /**
  * Класс FileResource
  *
  * Реализация ResourceInterface для работы с файловыми ресурсами.
  * Поддерживает паттерны в URI для доступа к нескольким файлам.
  */
-
-namespace app\modules\neuron\mcp\resources;
-
-use app\modules\neuron\mcp\interfaces\ResourceInterface;
-
 class FileResource implements ResourceInterface
 {
     /**
@@ -68,13 +67,18 @@ class FileResource implements ResourceInterface
     /**
      * Возвращает содержимое ресурса
      *
+     * @param string|null $requestedUri Запрошенный URI; при паттерне — конкретный URI для выбора файла
+     *
      * @return string Содержимое файла
      *
      * @throws \RuntimeException Если файл не найден или недоступен для чтения
      */
-    public function getContent(): string
+    public function getContent(?string $requestedUri = null): string
     {
-        $filename = $this->extractFilenameFromUri($this->uriPattern);
+        $uriForFile = $requestedUri !== null && $this->matchesUri($requestedUri)
+            ? $requestedUri
+            : $this->uriPattern;
+        $filename = $this->extractFilenameFromUri($uriForFile);
         $filepath = $this->basePath . '/' . $filename;
 
         if (!file_exists($filepath)) {

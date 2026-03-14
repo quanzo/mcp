@@ -1,14 +1,13 @@
 <?php
 
+namespace app\modules\neuron\mcp\commands;
+
 /**
  * Класс EchoCommand
  *
  * Пример простой команды, которая возвращает переданное сообщение.
  * Демонстрирует базовое использование CommandInterface.
  */
-
-namespace app\modules\neuron\mcp\commands;
-
 class EchoCommand extends BaseCommand
 {
     /**

@@ -4,6 +4,11 @@ namespace app\modules\neuron\mcp\resources;
 
 use app\modules\neuron\mcp\interfaces\ResourceInterface;
 
+/**
+ * Класс MyResource
+ *
+ * Пример статического ресурса с фиксированным URI и JSON-содержимым.
+ */
 class MyResource implements ResourceInterface
 {
     public function getUri(): string
@@ -16,7 +21,7 @@ class MyResource implements ResourceInterface
         return 'application/json';
     }
 
-    public function getContent(): string
+    public function getContent(?string $requestedUri = null): string
     {
         return json_encode(['data' => 'Пример данных']);
     }

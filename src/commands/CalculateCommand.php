@@ -1,14 +1,13 @@
 <?php
 
+namespace app\modules\neuron\mcp\commands;
+
 /**
  * Класс CalculateCommand
  *
  * Пример команды для выполнения математических операций.
  * Демонстрирует валидацию входных параметров и обработку ошибок.
  */
-
-namespace app\modules\neuron\mcp\commands;
-
 class CalculateCommand extends BaseCommand
 {
     /**
@@ -55,7 +54,7 @@ class CalculateCommand extends BaseCommand
      *
      * @return array Результат вычисления
      *
-     * @throws \InvalidArgumentException Если операция деления на ноль
+     * @throws \InvalidArgumentException Если операция деления на ноль (проверка $b == 0)
      */
     protected function doExecute(array $params): array
     {

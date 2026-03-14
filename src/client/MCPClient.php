@@ -2,6 +2,8 @@
 
 namespace app\modules\neuron\mcp\client;
 
+use Psr\Log\LoggerInterface;
+
 /**
  * Класс MCPClient
  *
@@ -12,39 +14,49 @@ class MCPClient
 {
     /**
      * Дочерний процесс сервера
+     *
      * @var resource
      */
     private $process;
 
     /**
-     * Каналы общения с дочерним процессом
-     * @var array
+     * Каналы общения с дочерним процессом (stdin, stdout, stderr)
+     *
+     * @var array<int, resource>
      */
-    private $pipes;
+    private array $pipes = [];
 
     /**
      * Ключ авторизации
-     * @var string
      */
-    private $authKey;
+    private string $authKey;
 
     /**
      * Счетчик идентификаторов запросов
-     * @var int
      */
-    private $requestId = 1;
+    private int $requestId = 1;
+
+    /**
+     * Логгер (если null — вывод в консоль не выполняется)
+     */
+    private ?LoggerInterface $logger;
 
     /**
      * Конструктор MCPClient
      *
      * @param string $serverScript Путь к скрипту сервера
      * @param string $authKey Ключ авторизации
+     * @param LoggerInterface|null $logger Логгер для вывода (при null логи не пишутся)
      *
      * @throws \RuntimeException Если не удалось запустить MCP сервер
      */
-    public function __construct(string $serverScript, string $authKey = 'default-secret-key-123')
-    {
+    public function __construct(
+        string $serverScript,
+        string $authKey = 'default-secret-key-123',
+        ?LoggerInterface $logger = null
+    ) {
         $this->authKey = $authKey;
+        $this->logger = $logger;
 
         // Команда для запуска сервера
         $command = "php " . escapeshellarg($serverScript);
@@ -67,7 +79,9 @@ class MCPClient
         stream_set_blocking($this->pipes[1], false);
         stream_set_blocking($this->pipes[2], false);
 
-        echo "MCP сервер запущен (PID: " . proc_get_status($this->process)['pid'] . ")\n";
+        if ($this->logger !== null) {
+            $this->logger->info('MCP сервер запущен', ['pid' => proc_get_status($this->process)['pid']]);
+        }
     }
 
     /**
@@ -101,7 +115,9 @@ class MCPClient
         fwrite($this->pipes[0], $jsonRequest);
         fflush($this->pipes[0]);
 
-        echo "Отправлен запрос #$id: $method\n";
+        if ($this->logger !== null) {
+            $this->logger->info('Отправлен запрос', ['id' => $id, 'method' => $method]);
+        }
 
         // Читаем ответ из stdout сервера
         $response = '';
@@ -128,8 +144,8 @@ class MCPClient
 
         // Читаем ошибки из stderr
         $errors = stream_get_contents($this->pipes[2]);
-        if (!empty($errors)) {
-            echo "Stderr сервера: $errors\n";
+        if (!empty($errors) && $this->logger !== null) {
+            $this->logger->warning('Stderr сервера', ['stderr' => $errors]);
         }
 
         $decodedResponse = json_decode($response, true);
@@ -218,7 +234,9 @@ class MCPClient
             proc_close($this->process);
         }
 
-        echo "Соединение с MCP сервером закрыто\n";
+        if ($this->logger !== null) {
+            $this->logger->info('Соединение с MCP сервером закрыто');
+        }
     }
 
     /**

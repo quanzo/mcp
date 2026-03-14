@@ -1,5 +1,11 @@
 <?php
 
+namespace app\modules\neuron\mcp\commands;
+
+use app\modules\neuron\mcp\interfaces\CommandInterface;
+use app\modules\neuron\mcp\validation\JsonSchemaValidator;
+use app\modules\neuron\mcp\validation\ValidationException;
+
 /**
  * Абстрактный класс BaseCommand
  *
@@ -7,11 +13,6 @@
  * Упрощает создание новых команд, предоставляя стандартную реализацию
  * валидации и выполнения.
  */
-
-namespace app\modules\neuron\mcp\commands;
-
-use app\modules\neuron\mcp\interfaces\CommandInterface;
-
 abstract class BaseCommand implements CommandInterface
 {
     /**

@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use app\modules\neuron\mcp\Server;
 use app\modules\neuron\mcp\commands\BaseCommand;
-use app\modules\neuron\mcp\commands\ValidationException;
+use app\modules\neuron\mcp\validation\ValidationException;
 use app\modules\neuron\mcp\interfaces\ResourceInterface;
 
 /**
@@ -261,7 +261,7 @@ class ServerTest extends TestCase
                 return 'text/plain';
             }
 
-            public function getContent(): string
+            public function getContent(?string $requestedUri = null): string
             {
                 return 'content';
             }

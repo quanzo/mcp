@@ -1,23 +1,34 @@
 <?php
 
+namespace app\modules\neuron\mcp\commands;
+
+use app\modules\neuron\mcp\validation\ValidationException;
+
 /**
  * Класс UserCommand
  *
  * Пример команды для создания пользователя с полной валидацией входных параметров.
  * Демонстрирует использование JSON Schema для валидации и бизнес-логики.
  */
-
-namespace app\modules\neuron\mcp\commands;
-
 class UserCommand extends BaseCommand
 {
     /**
-     * Конструктор UserCommand
+     * Список занятых email или callable(string): bool для проверки занятости
+     *
+     * @var array<int, string>|callable(string): bool|null
      */
-    public function __construct()
+    private $emailTakenChecker;
+
+    /**
+     * Конструктор UserCommand
+     *
+     * @param array<int, string>|callable(string): bool|null $emailTakenChecker Список занятых email или callable
+     */
+    public function __construct($emailTakenChecker = null)
     {
         $this->name = 'user.create';
         $this->description = 'Создание нового пользователя';
+        $this->emailTakenChecker = $emailTakenChecker ?? ['admin@example.com', 'test@example.com'];
     }
 
     /**
@@ -110,8 +121,10 @@ class UserCommand extends BaseCommand
      */
     private function isEmailTaken(string $email): bool
     {
-        // Имитация проверки существующего email в базе данных
-        $takenEmails = ['admin@example.com', 'test@example.com'];
-        return in_array($email, $takenEmails);
+        if (is_callable($this->emailTakenChecker)) {
+            return ($this->emailTakenChecker)($email);
+        }
+
+        return in_array($email, $this->emailTakenChecker, true);
     }
 }

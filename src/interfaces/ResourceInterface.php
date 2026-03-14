@@ -1,5 +1,7 @@
 <?php
 
+namespace app\modules\neuron\mcp\interfaces;
+
 /**
  * Интерфейс ResourceInterface
  *
@@ -7,9 +9,6 @@
  * Ресурсы представляют собой статические или динамически генерируемые данные,
  * доступные для чтения через MCP протокол.
  */
-
-namespace app\modules\neuron\mcp\interfaces;
-
 interface ResourceInterface
 {
     /**
@@ -29,11 +28,13 @@ interface ResourceInterface
     /**
      * Возвращает содержимое ресурса
      *
+     * @param string|null $requestedUri Запрошенный URI (для ресурсов по паттерну — конкретный URI запроса)
+     *
      * @return string Содержимое ресурса в виде строки
      *
      * @throws \RuntimeException Если невозможно получить содержимое ресурса
      */
-    public function getContent(): string;
+    public function getContent(?string $requestedUri = null): string;
 
     /**
      * Возвращает метаданные ресурса

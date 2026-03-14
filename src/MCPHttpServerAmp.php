@@ -19,8 +19,8 @@ use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Socket\ServerSocketFactory;
 use Monolog\Logger;
 use Revolt\EventLoop;
-// Используем пространство имен MCP клиента
 use app\modules\neuron\mcp\client\MCPClient;
+use app\modules\neuron\mcp\http\HttpResponseFormatter;
 
 /**
  * Продвинутый HTTP сервер для MCP на основе Amp
@@ -46,8 +46,6 @@ class MCPHttpServerAmp
     private string $host;
     private int $port;
     private Logger $logger;
-    private array $workerPool = [];
-    private int $maxWorkers = 5;
     private int $activeConnections = 0;
     private int $startTime;
 
@@ -59,7 +57,7 @@ class MCPHttpServerAmp
         $this->host = $host;
         $this->port = $port;
         $this->authKey = $authKey;
-        $this->mcpServerScript = $this->mcpServerScrip ?? __DIR__ . '/mcp_server.php';
+        $this->mcpServerScript = __DIR__ . '/../mcp_server.php';
         $this->startTime = time();
 
         // Проверяем существование скрипта MCP сервера
@@ -109,11 +107,10 @@ class MCPHttpServerAmp
                         return new Response(
                             HttpStatus::INTERNAL_SERVER_ERROR,
                             ['content-type' => 'application/json'],
-                            json_encode([
-                                'status' => 'error',
-                                'message' => 'Internal server error',
-                                'timestamp' => date('c')
-                            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                            json_encode(
+                                HttpResponseFormatter::error(500, 'Internal server error'),
+                                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                            )
                         );
                     } finally {
                         $this->activeConnections--;
@@ -166,7 +163,6 @@ class MCPHttpServerAmp
         echo "║ Порт:             {$this->port}\n";
         echo "║ Авторизация:      " . (!empty($this->authKey) ? "Включена" : "Отключена") . "\n";
         echo "║ PHP версия:       " . PHP_VERSION . "\n";
-        echo "║ Макс. воркеров:   {$this->maxWorkers}\n";
         echo "╠══════════════════════════════════════════════════════════╣\n";
         echo "║ Доступные эндпоинты:\n";
         echo "║   GET  /api/commands    - Список команд\n";
@@ -286,18 +282,13 @@ class MCPHttpServerAmp
                 $client->close();
             }
 
-            return $this->jsonResponse(HttpStatus::OK, [
-                'status' => 'success',
-                'data' => $result,
-                'timestamp' => date('c')
-            ]);
+            return $this->jsonResponse(HttpStatus::OK, HttpResponseFormatter::success($result));
         } catch (\Throwable $e) {
             $this->logger->error("Ошибка выполнения команды: " . $e->getMessage());
-            return $this->jsonResponse(HttpStatus::INTERNAL_SERVER_ERROR, [
-                'status' => 'error',
-                'message' => 'Command execution failed',
-                'error' => $e->getMessage()
-            ]);
+            return $this->jsonResponse(
+                HttpStatus::INTERNAL_SERVER_ERROR,
+                HttpResponseFormatter::error(500, 'Command execution failed', ['error' => $e->getMessage()])
+            );
         }
     }
 
@@ -327,21 +318,16 @@ class MCPHttpServerAmp
                 $client->close();
             }
 
-            return $this->jsonResponse(HttpStatus::OK, [
-                'status' => 'success',
-                'data' => [
-                    'commands' => $commands,
-                    'count' => count($commands)
-                ],
-                'timestamp' => date('c')
-            ]);
+            return $this->jsonResponse(
+                HttpStatus::OK,
+                HttpResponseFormatter::success(['commands' => $commands, 'count' => count($commands)])
+            );
         } catch (\Throwable $e) {
             $this->logger->error("Ошибка получения списка команд: " . $e->getMessage());
-            return $this->jsonResponse(HttpStatus::INTERNAL_SERVER_ERROR, [
-                'status' => 'error',
-                'message' => 'Failed to get commands list',
-                'error' => $e->getMessage()
-            ]);
+            return $this->jsonResponse(
+                HttpStatus::INTERNAL_SERVER_ERROR,
+                HttpResponseFormatter::error(500, 'Failed to get commands list', ['error' => $e->getMessage()])
+            );
         }
     }
 
@@ -358,21 +344,16 @@ class MCPHttpServerAmp
                 $client->close();
             }
 
-            return $this->jsonResponse(HttpStatus::OK, [
-                'status' => 'success',
-                'data' => [
-                    'resources' => $resources,
-                    'count' => count($resources)
-                ],
-                'timestamp' => date('c')
-            ]);
+            return $this->jsonResponse(
+                HttpStatus::OK,
+                HttpResponseFormatter::success(['resources' => $resources, 'count' => count($resources)])
+            );
         } catch (\Throwable $e) {
             $this->logger->error("Ошибка получения списка ресурсов: " . $e->getMessage());
-            return $this->jsonResponse(HttpStatus::INTERNAL_SERVER_ERROR, [
-                'status' => 'error',
-                'message' => 'Failed to get resources list',
-                'error' => $e->getMessage()
-            ]);
+            return $this->jsonResponse(
+                HttpStatus::INTERNAL_SERVER_ERROR,
+                HttpResponseFormatter::error(500, 'Failed to get resources list', ['error' => $e->getMessage()])
+            );
         }
     }
 
@@ -381,10 +362,8 @@ class MCPHttpServerAmp
      */
     private function handleHealthCheck(Request $request): Response
     {
-        return $this->jsonResponse(HttpStatus::OK, [
-            'status' => 'success',
+        $data = [
             'message' => 'MCP HTTP Server (Amp) is running',
-            'timestamp' => date('c'),
             'server' => [
                 'name'               => 'MCP HTTP Server (Amp)',
                 'version'            => '1.0.0',
@@ -392,10 +371,10 @@ class MCPHttpServerAmp
                 'host'               => $this->host,
                 'port'               => $this->port,
                 'auth_enabled'       => !empty($this->authKey),
-                'active_connections' => $this->activeConnections,
-                'workers'            => count($this->workerPool)
+                'active_connections' => $this->activeConnections
             ]
-        ]);
+        ];
+        return $this->jsonResponse(HttpStatus::OK, HttpResponseFormatter::success($data));
     }
 
     /**
@@ -427,7 +406,6 @@ class MCPHttpServerAmp
                     'GET /api/metrics'   => 'Метрики сервера'
                 ],
                 'performance' => [
-                    'max_workers'  => $this->maxWorkers,
                     'memory_usage' => memory_get_usage(true) / 1024 / 1024 . ' MB',
                     'memory_peak'  => memory_get_peak_usage(true) / 1024 / 1024 . ' MB',
                     'uptime'       => $this->getUptime()
@@ -450,8 +428,7 @@ class MCPHttpServerAmp
     {
         $metrics = [
             'connections' => [
-                'active'      => $this->activeConnections,
-                'max_workers' => $this->maxWorkers
+                'active' => $this->activeConnections
             ],
             'memory' => [
                 'usage'       => memory_get_usage(true),
@@ -475,11 +452,7 @@ class MCPHttpServerAmp
             ]
         ];
 
-        return $this->jsonResponse(HttpStatus::OK, [
-            'status' => 'success',
-            'data' => $metrics,
-            'timestamp' => date('c')
-        ]);
+        return $this->jsonResponse(HttpStatus::OK, HttpResponseFormatter::success($metrics));
     }
 
     /**
@@ -640,10 +613,6 @@ class MCPHttpServerAmp
             <div class="stat-card">
                 <div class="stat-value">{$this->activeConnections}</div>
                 <div class="stat-label">Активных соединений</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{$this->maxWorkers}</div>
-                <div class="stat-label">Макс. воркеров</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{$memoryUsage}</div>

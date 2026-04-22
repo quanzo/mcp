@@ -1,10 +1,10 @@
 <?php
 
-namespace quanzo\mcp\commands;
+namespace quanzo\mcp\classes\commands;
 
 use quanzo\mcp\interfaces\CommandInterface;
-use quanzo\mcp\validation\JsonSchemaValidator;
-use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\classes\validation\JsonSchemaValidator;
+use quanzo\mcp\classes\validation\ValidationException;
 
 /**
  * Абстрактный класс BaseCommand

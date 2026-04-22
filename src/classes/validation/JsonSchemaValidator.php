@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\validation;
+namespace quanzo\mcp\classes\validation;
 
 /**
  * Класс JsonSchemaValidator

@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\client;
+namespace quanzo\mcp\classes\client;
 
 use Psr\Log\LoggerInterface;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\dto;
+namespace quanzo\mcp\classes\dto;
 
 /**
  * DTO ответа JSON-RPC 2.0

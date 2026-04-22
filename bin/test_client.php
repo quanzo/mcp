@@ -13,7 +13,7 @@ $projectRoot = dirname(__DIR__);
 
 require_once $projectRoot . '/vendor/autoload.php';
 
-use quanzo\mcp\client\MCPClient;
+use quanzo\mcp\classes\client\MCPClient;
 
 /**
  * Основной скрипт тестирования

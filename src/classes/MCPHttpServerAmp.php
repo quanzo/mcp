@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp;
+namespace quanzo\mcp\classes;
 
 use Amp\ByteStream\WritableResourceStream;
 use Amp\Http\HttpStatus;
@@ -19,8 +19,8 @@ use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Socket\ServerSocketFactory;
 use Monolog\Logger;
 use Revolt\EventLoop;
-use quanzo\mcp\client\MCPClient;
-use quanzo\mcp\http\HttpResponseFormatter;
+use quanzo\mcp\classes\client\MCPClient;
+use quanzo\mcp\classes\http\HttpResponseFormatter;
 
 /**
  * Продвинутый HTTP сервер для MCP на основе Amp

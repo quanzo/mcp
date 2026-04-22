@@ -4,7 +4,7 @@ $projectRoot = dirname(__DIR__);
 
 require_once $projectRoot . '/vendor/autoload.php';
 
-use quanzo\mcp\MCPHttpServerAmp;
+use quanzo\mcp\classes\MCPHttpServerAmp;
 
 // Обработка аргументов командной строки
 if (php_sapi_name() === 'cli') {

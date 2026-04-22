@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Commands;
 
 use PHPUnit\Framework\TestCase;
-use quanzo\mcp\commands\UserCommand;
-use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\classes\commands\UserCommand;
+use quanzo\mcp\classes\validation\ValidationException;
 
 /**
  * Класс UserCommandTest

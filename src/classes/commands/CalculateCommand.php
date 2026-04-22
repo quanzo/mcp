@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\commands;
+namespace quanzo\mcp\classes\commands;
 
 /**
  * Класс CalculateCommand

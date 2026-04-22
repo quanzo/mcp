@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\resources;
+namespace quanzo\mcp\classes\resources;
 
 use quanzo\mcp\interfaces\ResourceInterface;
 

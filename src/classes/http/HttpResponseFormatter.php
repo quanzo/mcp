@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\http;
+namespace quanzo\mcp\classes\http;
 
 /**
  * Форматтер HTTP-ответов для MCP HTTP API

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Commands;
 
 use PHPUnit\Framework\TestCase;
-use quanzo\mcp\commands\CalculateCommand;
+use quanzo\mcp\classes\commands\CalculateCommand;
 
 /**
  * Класс CalculateCommandTest
@@ -70,7 +70,7 @@ class CalculateCommandTest extends TestCase
      */
     public function testUnknownOperationThrowsException(): void
     {
-        $this->expectException(\quanzo\mcp\validation\ValidationException::class);
+        $this->expectException(\quanzo\mcp\classes\validation\ValidationException::class);
 
         $command = new CalculateCommand();
         $command->execute([

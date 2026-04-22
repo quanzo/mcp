@@ -1,9 +1,9 @@
 <?php
 
-namespace quanzo\mcp;
+namespace quanzo\mcp\classes;
 
-use quanzo\mcp\client\MCPClient;
-use quanzo\mcp\http\HttpResponseFormatter;
+use quanzo\mcp\classes\client\MCPClient;
+use quanzo\mcp\classes\http\HttpResponseFormatter;
 
 /**
  * HTTP сервер для MCP сервера

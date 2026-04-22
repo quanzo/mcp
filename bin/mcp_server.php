@@ -13,13 +13,13 @@ $projectRoot = dirname(__DIR__);
 
 require_once $projectRoot . '/vendor/autoload.php';
 
-use quanzo\mcp\Server;
-use quanzo\mcp\log\FileLogger;
-use quanzo\mcp\commands\EchoCommand;
-use quanzo\mcp\commands\CalculateCommand;
-use quanzo\mcp\commands\UserCommand;
-use quanzo\mcp\commands\MyCustomCommand;
-use quanzo\mcp\resources\FileResource;
+use quanzo\mcp\classes\Server;
+use quanzo\mcp\classes\log\FileLogger;
+use quanzo\mcp\classes\commands\EchoCommand;
+use quanzo\mcp\classes\commands\CalculateCommand;
+use quanzo\mcp\classes\commands\UserCommand;
+use quanzo\mcp\classes\commands\MyCustomCommand;
+use quanzo\mcp\classes\resources\FileResource;
 
 // Проверка версии PHP
 if (version_compare(PHP_VERSION, '8.1.0', '<')) {

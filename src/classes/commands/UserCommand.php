@@ -1,8 +1,8 @@
 <?php
 
-namespace quanzo\mcp\commands;
+namespace quanzo\mcp\classes\commands;
 
-use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\classes\validation\ValidationException;
 
 /**
  * Класс UserCommand

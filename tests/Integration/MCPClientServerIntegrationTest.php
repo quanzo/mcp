@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use quanzo\mcp\client\MCPClient;
+use quanzo\mcp\classes\client\MCPClient;
 
 /**
  * Класс MCPClientServerIntegrationTest

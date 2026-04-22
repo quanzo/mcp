@@ -2,6 +2,14 @@
 
 Этот документ описывает не «теорию MCP вообще», а **конкретные нюансы текущей реализации** в этом репозитории: как устроены stdio-обмен, JSON-RPC сообщения, авторизация, ошибки, ресурсы и HTTP-гейтвеи.
 
+См. также:
+- `docs/overview.md`
+- `docs/quickstart.md`
+- `docs/mcp-protocol.md`
+- `docs/http-gateway.md`
+- `docs/commands.md`
+- `docs/resources.md`
+
 ## 1) MCP и JSON-RPC 2.0: что именно принимает сервер
 
 Сервер работает поверх **JSON-RPC 2.0** и читает запросы из `STDIN` построчно.
@@ -135,9 +143,10 @@
 
 ## 8) Где смотреть реализацию
 
-- Сервер stdio: `src/classes/Server.php`
+- Сервер stdio: `quanzo\mcp\classes\Server` (`src/classes/Server.php`)
 - Базовая команда + валидация: `src/classes/commands/BaseCommand.php`, `src/classes/validation/JsonSchemaValidator.php`
 - Ресурсы: `src/interfaces/ResourceInterface.php`, `src/classes/resources/*`
-- Клиент stdio: `src/classes/client/MCPClient.php`
-- HTTP-гейтвеи: `src/classes/MCPHttpServer.php`, `src/classes/MCPHttpServerAmp.php`
+- Клиент stdio: `quanzo\mcp\classes\client\MCPClient` (`src/classes/client/MCPClient.php`)
+- HTTP-гейтвеи: `quanzo\mcp\classes\MCPHttpServer`, `quanzo\mcp\classes\MCPHttpServerAmp`
+  (`src/classes/MCPHttpServer.php`, `src/classes/MCPHttpServerAmp.php`)
 

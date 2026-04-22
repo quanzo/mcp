@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Commands;
 
 use PHPUnit\Framework\TestCase;
-use quanzo\mcp\commands\EchoCommand;
+use quanzo\mcp\classes\commands\EchoCommand;
 
 /**
  * Класс EchoCommandTest

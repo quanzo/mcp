@@ -6,9 +6,9 @@ namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use quanzo\mcp\Server;
-use quanzo\mcp\commands\BaseCommand;
-use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\classes\Server;
+use quanzo\mcp\classes\commands\BaseCommand;
+use quanzo\mcp\classes\validation\ValidationException;
 use quanzo\mcp\interfaces\ResourceInterface;
 
 /**
@@ -317,7 +317,7 @@ class ServerTest extends TestCase
         $content = 'hello';
         file_put_contents($tmpDir . '/' . $filename, $content);
 
-        $resource = new \quanzo\mcp\resources\FileResource(
+        $resource = new \quanzo\mcp\classes\resources\FileResource(
             'file://logs/*',
             'text/plain',
             $tmpDir

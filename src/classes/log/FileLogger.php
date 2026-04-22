@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\log;
+namespace quanzo\mcp\classes\log;
 
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;

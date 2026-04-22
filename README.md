@@ -71,7 +71,14 @@ src/
 └── enums/                        # Enum'ы (при необходимости)
 
 docs/
-└── mcp-nuances.md                # Тонкости MCP в этой реализации
+├── overview.md                   # Обзор и карта компонентов
+├── quickstart.md                 # Быстрый старт
+├── development.md                # Разработка и проверки
+├── mcp-protocol.md               # JSON-RPC/MCP протокол (stdio)
+├── http-gateway.md               # HTTP gateway (sync/Amp)
+├── commands.md                   # Команды (tools)
+├── resources.md                  # Ресурсы
+└── mcp-nuances.md                # Глубокие нюансы MCP в этой реализации
 
 tests/                            # Unit/Integration тесты
 ```
@@ -153,13 +160,13 @@ php bin/test_client.php
 
 ## Создание собственных команд
 
-1. Создайте новый класс в пространстве имен quanzo\mcp\commands:
+1. Создайте новый класс в пространстве имен quanzo\mcp\classes\commands:
 
 ```php
-namespace quanzo\mcp\commands;
+namespace quanzo\mcp\classes\commands;
 
-use quanzo\mcp\commands\BaseCommand;
-use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\classes\commands\BaseCommand;
+use quanzo\mcp\classes\validation\ValidationException;
 
 class MyCustomCommand extends BaseCommand
 {
@@ -197,7 +204,7 @@ class MyCustomCommand extends BaseCommand
 2. Зарегистрируйте команду в сервере:
 
 ```php
-use quanzo\mcp\commands\MyCustomCommand;
+use quanzo\mcp\classes\commands\MyCustomCommand;
 
 $server->registerCommand(new MyCustomCommand());
 ```
@@ -207,7 +214,7 @@ $server->registerCommand(new MyCustomCommand());
 Создайте новый класс ресурса:
 
 ```php
-namespace quanzo\mcp\resources;
+namespace quanzo\mcp\classes\resources;
 
 use quanzo\mcp\interfaces\ResourceInterface;
 
@@ -243,7 +250,7 @@ class MyResource implements ResourceInterface
 2. Зарегистрируйте ресурс в сервере:
 
 ```php
-use quanzo\mcp\resources\MyResource;
+use quanzo\mcp\classes\resources\MyResource;
 
 $server->registerResource(new MyResource());
 ```
@@ -253,7 +260,7 @@ $server->registerResource(new MyResource());
 По умолчанию логи записываются в файл logs/mcp-server.log. Вы можете изменить уровень логирования:
 
 ```php
-use quanzo\mcp\log\FileLogger;
+use quanzo\mcp\classes\log\FileLogger;
 
 $logger = new FileLogger(
     __DIR__ . '/logs/mcp-server.log',
@@ -274,7 +281,7 @@ $logger = new FileLogger(
 В каждом запросе в параметре auth
 
 ```php
-use quanzo\mcp\Server;
+use quanzo\mcp\classes\Server;
 
 $server = new Server('my-secret-key', $logger);
 ```
@@ -290,8 +297,8 @@ $server = new Server('my-secret-key', $logger);
 ```php
 require_once 'vendor/autoload.php';
 
-use quanzo\mcp\Server;
-use quanzo\mcp\log\FileLogger;
+use quanzo\mcp\classes\Server;
+use quanzo\mcp\classes\log\FileLogger;
 
 // Настройка логгера
 $logger = new FileLogger('/var/log/mcp-server.log');
@@ -317,10 +324,10 @@ curl -X POST http://localhost:8000/api/mcp/execute -H "Content-Type: application
 
 ## Класс MCPClient
 
-Для удобства тестирования и интеграции предоставлен класс MCPClient в пространстве имен quanzo\mcp\client. Он позволяет взаимодействовать с сервером через stdio:
+Для удобства тестирования и интеграции предоставлен класс MCPClient в пространстве имен quanzo\mcp\classes\client. Он позволяет взаимодействовать с сервером через stdio:
 
 ```php
-use quanzo\mcp\client\MCPClient;
+use quanzo\mcp\classes\client\MCPClient;
 
 $client = new MCPClient(__DIR__ . '/bin/mcp_server.php', 'your-secret-key');
 
@@ -347,6 +354,10 @@ php bin/http_server_amp.php 0.0.0.0 8080 my-secret-key
 nohup php bin/http_server_amp.php 0.0.0.0 8080 > /var/log/mcp-http.log 2>&1 &
 ```
 
-## Документация по нюансам MCP
+## Документация
 
-См. `docs/mcp-nuances.md`.
+Начните с `docs/overview.md` и `docs/quickstart.md`, затем:
+- протокол/stdio: `docs/mcp-protocol.md`
+- HTTP gateway: `docs/http-gateway.md`
+- команды/ресурсы: `docs/commands.md`, `docs/resources.md`
+- глубокие нюансы: `docs/mcp-nuances.md`

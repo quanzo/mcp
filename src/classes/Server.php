@@ -1,13 +1,13 @@
 <?php
 
-namespace quanzo\mcp;
+namespace quanzo\mcp\classes;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use quanzo\mcp\interfaces\CommandInterface;
 use quanzo\mcp\interfaces\ResourceInterface;
-use quanzo\mcp\validation\ValidationException;
-use quanzo\mcp\dto\JsonRpcRequest;
+use quanzo\mcp\classes\validation\ValidationException;
+use quanzo\mcp\classes\dto\JsonRpcRequest;
 
 /**
  * Класс Server

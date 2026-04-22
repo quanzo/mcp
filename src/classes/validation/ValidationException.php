@@ -2,6 +2,8 @@
 
 namespace quanzo\mcp\classes\validation;
 
+use quanzo\mcp\helpers\JsonHelper;
+
 /**
  * Класс ValidationException
  *
@@ -26,7 +28,7 @@ class ValidationException extends \RuntimeException
     public function __construct(array $validationErrors, string $message = "Validation failed")
     {
         $this->validationErrors = $validationErrors;
-        parent::__construct($message . ': ' . json_encode($validationErrors));
+        parent::__construct($message . ': ' . JsonHelper::encode($validationErrors, JsonHelper::DEFAULT_COMPACT_FLAGS));
     }
 
     /**

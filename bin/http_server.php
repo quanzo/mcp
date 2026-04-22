@@ -5,6 +5,7 @@ $projectRoot = dirname(__DIR__);
 require_once $projectRoot . '/vendor/autoload.php';
 
 use quanzo\mcp\classes\MCPHttpServer;
+use quanzo\mcp\helpers\JsonHelper;
 
 // Обработка аргументов командной строки
 if (php_sapi_name() === 'cli') {
@@ -64,7 +65,7 @@ if (php_sapi_name() === 'cli') {
     }
 
     try {
-        $server = new MCPHttpServer($port, $authKey, $host);
+        $server = new MCPHttpServer($projectRoot . '/bin/mcp_server.php', $port, $authKey, $host);
         $server->run();
     } catch (\Throwable $e) {
         echo "Ошибка запуска сервера: " . $e->getMessage() . "\n";
@@ -79,11 +80,11 @@ if (php_sapi_name() === 'cli') {
     $host = $_ENV['MCP_HTTP_HOST'] ?? '0.0.0.0';
 
     try {
-        $server = new MCPHttpServer($port, $authKey, $host);
+        $server = new MCPHttpServer($projectRoot . '/bin/mcp_server.php', $port, $authKey, $host);
         $server->handleRequest();
     } catch (\Throwable $e) {
         http_response_code(500);
-        echo json_encode(
+        echo JsonHelper::encode(
             [
                 'status' => 'error',
                 'message' => 'Internal server error',

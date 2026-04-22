@@ -3,6 +3,7 @@
 namespace quanzo\mcp\classes\resources;
 
 use quanzo\mcp\interfaces\ResourceInterface;
+use quanzo\mcp\helpers\JsonHelper;
 
 /**
  * Класс MyResource
@@ -23,7 +24,7 @@ class MyResource implements ResourceInterface
 
     public function getContent(?string $requestedUri = null): string
     {
-        return json_encode(['data' => 'Пример данных']);
+        return JsonHelper::encode(['data' => 'Пример данных'], JsonHelper::DEFAULT_PRETTY_FLAGS);
     }
 
     public function getMetadata(): array

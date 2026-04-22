@@ -4,6 +4,7 @@ namespace quanzo\mcp\classes;
 
 use quanzo\mcp\classes\client\MCPClient;
 use quanzo\mcp\classes\http\HttpResponseFormatter;
+use quanzo\mcp\helpers\JsonHelper;
 
 /**
  * HTTP сервер для MCP сервера
@@ -24,8 +25,11 @@ class MCPHttpServer
     private string $mcpServerScript;
     private int $port;
     private string $host;
+    /** @var array<string, string> */
+    private array $headers = [];
 
     public function __construct(
+        string $mcpServerScript,
         int $port = 8080,
         string $authKey = 'default-secret-key-123',
         string $host = '0.0.0.0'
@@ -33,17 +37,51 @@ class MCPHttpServer
         $this->port = $port;
         $this->authKey = $authKey;
         $this->host = $host;
-        $this->mcpServerScript = $this->getProjectRoot() . '/bin/mcp_server.php';
+        $this->mcpServerScript = $mcpServerScript;
 
         // Проверяем существование скрипта MCP сервера
         if (!file_exists($this->mcpServerScript)) {
             throw new \RuntimeException("MCP сервер не найден: " . $this->mcpServerScript);
         }
+
+        $this->headers = self::getDefaultHeaders();
     }
 
-    private function getProjectRoot(): string
+    /**
+     * @return array<string, string>
+     */
+    private static function getDefaultHeaders(): array
     {
-        return dirname(__DIR__, 2);
+        return [
+            'Content-Type' => 'application/json',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
+        ];
+    }
+
+    /**
+     * Полностью задаёт (мерджит поверх дефолтов) набор заголовков.
+     *
+     * @param array<string, string> $headers
+     */
+    public function setHeaders(array $headers): self
+    {
+        $this->headers = array_merge(self::getDefaultHeaders(), $headers);
+        return $this;
+    }
+
+    public function addHeader(string $name, string $value): self
+    {
+        $this->headers[$name] = $value;
+        return $this;
+    }
+
+    private function applyHeaders(): void
+    {
+        foreach ($this->headers as $name => $value) {
+            header($name . ': ' . $value);
+        }
     }
 
     /**
@@ -51,11 +89,7 @@ class MCPHttpServer
      */
     public function handleRequest(): void
     {
-        // Устанавливаем заголовки по умолчанию
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        $this->applyHeaders();
 
         // Обработка CORS preflight запросов
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -104,7 +138,7 @@ class MCPHttpServer
     private function handleGetCommands(MCPClient $client): void
     {
         $commands = $client->listCommands();
-        echo json_encode(
+        echo JsonHelper::encode(
             HttpResponseFormatter::success(['commands' => $commands, 'count' => count($commands)]),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
@@ -116,7 +150,7 @@ class MCPHttpServer
     private function handleGetResources(MCPClient $client): void
     {
         $resources = $client->listResources();
-        echo json_encode(
+        echo JsonHelper::encode(
             HttpResponseFormatter::success(['resources' => $resources, 'count' => count($resources)]),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
@@ -162,7 +196,7 @@ class MCPHttpServer
 
         try {
             $result = $client->sendRequest($command, $params);
-            echo json_encode(
+            echo JsonHelper::encode(
                 HttpResponseFormatter::success($result),
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
             );
@@ -190,7 +224,7 @@ class MCPHttpServer
                 'auth_enabled' => !empty($this->authKey)
             ]
         ];
-        echo json_encode(
+        echo JsonHelper::encode(
             HttpResponseFormatter::success($data),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
@@ -224,7 +258,7 @@ class MCPHttpServer
                 'exists' => file_exists($this->mcpServerScript)
             ]
         ];
-        echo json_encode(
+        echo JsonHelper::encode(
             HttpResponseFormatter::success($data),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
@@ -246,7 +280,7 @@ class MCPHttpServer
             ],
             'documentation' => 'https://github.com/your-repo/mcp-server'
         ];
-        echo json_encode(
+        echo JsonHelper::encode(
             HttpResponseFormatter::success($data),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
@@ -258,7 +292,7 @@ class MCPHttpServer
     private function sendError(int $code, string $message, array $details = []): void
     {
         http_response_code($code);
-        echo json_encode(
+        echo JsonHelper::encode(
             HttpResponseFormatter::error($code, $message, $details),
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
@@ -283,7 +317,7 @@ class MCPHttpServer
         echo "Длина ключа: " . strlen($this->authKey) . " символов\n\n";
 
         echo "Логирование:\n";
-        echo "  Логи MCP сервера: " . $this->getProjectRoot() . "/logs/mcp-server.log\n";
+        echo "  Логи MCP сервера: " . dirname(__DIR__, 2) . "/logs/mcp-server.log\n";
         echo "  Логи HTTP сервера: вывод в консоль\n\n";
 
         // Запускаем встроенный сервер PHP

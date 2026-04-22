@@ -3,6 +3,7 @@
 namespace quanzo\mcp\classes\client;
 
 use Psr\Log\LoggerInterface;
+use quanzo\mcp\helpers\JsonHelper;
 
 /**
  * Класс MCPClient
@@ -109,7 +110,7 @@ class MCPClient
             'params' => $params
         ];
 
-        $jsonRequest = json_encode($request) . "\n";
+        $jsonRequest = JsonHelper::encode($request) . "\n";
 
         // Записываем запрос в stdin сервера
         fwrite($this->pipes[0], $jsonRequest);
@@ -148,11 +149,8 @@ class MCPClient
             $this->logger->warning('Stderr сервера', ['stderr' => $errors]);
         }
 
-        $decodedResponse = json_decode($response, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException("Некорректный JSON ответ: " . json_last_error_msg());
-        }
+        /** @var array $decodedResponse */
+        $decodedResponse = JsonHelper::decode($response, true);
 
         return $decodedResponse;
     }

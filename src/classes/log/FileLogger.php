@@ -4,6 +4,7 @@ namespace quanzo\mcp\classes\log;
 
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
+use quanzo\mcp\helpers\JsonHelper;
 
 /**
  * Класс FileLogger
@@ -95,7 +96,7 @@ class FileLogger extends AbstractLogger
 
         $contextString = '';
         if (!empty($context)) {
-            $contextString = ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            $contextString = ' ' . JsonHelper::encode($context, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         }
 
         $logMessage = sprintf(

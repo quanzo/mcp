@@ -8,6 +8,7 @@ use quanzo\mcp\interfaces\CommandInterface;
 use quanzo\mcp\interfaces\ResourceInterface;
 use quanzo\mcp\classes\validation\ValidationException;
 use quanzo\mcp\classes\dto\JsonRpcRequest;
+use quanzo\mcp\helpers\JsonHelper;
 
 /**
  * Класс Server
@@ -66,10 +67,13 @@ class Server
     ) {
         $this->authKey = $authKey;
         $this->logger = $logger ?: new NullLogger();
-        $this->logger->info('MCP Server initialized', [
-            'php_version' => PHP_VERSION,
-            'auth_enabled' => !is_null($authKey)
-        ]);
+        $this->logger->info(
+            'MCP Server initialized',
+            [
+                'php_version'  => PHP_VERSION,
+                'auth_enabled' => !is_null($authKey)
+            ]
+        );
     }
 
     /**
@@ -120,10 +124,11 @@ class Server
             $this->logger->debug('Request received', ['raw' => trim($line)]);
 
             try {
-                $request = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+                /** @var array $request */
+                $request = JsonHelper::decode($line, true);
                 $response = $this->handleRequest($request);
 
-                fwrite(STDOUT, json_encode($response) . "\n");
+                fwrite(STDOUT, JsonHelper::encode($response) . "\n");
                 $this->logger->debug('Response sent');
             } catch (\JsonException $e) {
                 $this->sendError(null, -32700, "Parse error", $e->getMessage());
@@ -380,9 +385,9 @@ class Server
     {
         $error = [
             'jsonrpc' => '2.0',
-            'id' => $id,
-            'error' => [
-                'code' => $code,
+            'id'      => $id,
+            'error'   => [
+                'code'    => $code,
                 'message' => $message
             ]
         ];
@@ -391,11 +396,11 @@ class Server
             $error['error']['data'] = $data;
         }
 
-        fwrite(STDOUT, json_encode($error) . "\n");
+        fwrite(STDOUT, JsonHelper::encode($error) . "\n");
         $this->logger->error('Error response sent', [
-            'code' => $code,
+            'code'    => $code,
             'message' => $message,
-            'data' => $data
+            'data'    => $data
         ]);
     }
 }

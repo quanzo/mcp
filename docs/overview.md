@@ -14,6 +14,9 @@
 - **Клиент stdio**: `quanzo\mcp\classes\client\MCPClient` (`src/classes/client/MCPClient.php`)
 - **HTTP gateway (sync)**: `quanzo\mcp\classes\MCPHttpServer` (`src/classes/MCPHttpServer.php`)
 - **HTTP gateway (Amp)**: `quanzo\mcp\classes\MCPHttpServerAmp` (`src/classes/MCPHttpServerAmp.php`)
+- **JSON helper**: `quanzo\mcp\helpers\JsonHelper` (`src/helpers/JsonHelper.php`)
+- **Template renderer**: `quanzo\mcp\helpers\TemplateRenderer` (`src/helpers/TemplateRenderer.php`)
+- **Шаблоны**: `src/templates/`
 
 ### Куда смотреть дальше
 

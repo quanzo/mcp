@@ -32,7 +32,13 @@ if (php_sapi_name() === 'cli') {
     }
 
     try {
-        $server = new MCPHttpServerAmp($host, $port, $authKey);
+        $server = new MCPHttpServerAmp(
+            $projectRoot . '/bin/mcp_server.php',
+            $projectRoot . '/src/templates',
+            $host,
+            $port,
+            $authKey
+        );
         $server->run();
     } catch (\Throwable $e) {
         echo "Ошибка запуска сервера: " . $e->getMessage() . "\n";

@@ -21,6 +21,8 @@ use Monolog\Logger;
 use Revolt\EventLoop;
 use quanzo\mcp\classes\client\MCPClient;
 use quanzo\mcp\classes\http\HttpResponseFormatter;
+use quanzo\mcp\helpers\TemplateRenderer;
+use quanzo\mcp\helpers\JsonHelper;
 
 /**
  * Продвинутый HTTP сервер для MCP на основе Amp
@@ -42,14 +44,27 @@ use quanzo\mcp\classes\http\HttpResponseFormatter;
 class MCPHttpServerAmp
 {
     private string $authKey;
-    private ?string $mcpServerScript = null;
+    private string $mcpServerScript;
     private string $host;
     private int $port;
     private Logger $logger;
     private int $activeConnections = 0;
     private int $startTime;
+    private TemplateRenderer $templateRenderer;
+    private string $templatesRoot;
+    /** @var array<string, string> */
+    private array $headers = [];
 
+    /**
+     * @param string $mcpServerScript Абсолютный путь к `bin/mcp_server.php` (stdio серверу).
+     * @param string $templatesRoot Абсолютный путь к корню шаблонов (`src/templates`).
+     * @param string $host Хост, на котором будет слушать HTTP сервер.
+     * @param int $port Порт, на котором будет слушать HTTP сервер.
+     * @param string $authKey Ключ авторизации, который будет пробрасываться в MCP.
+     */
     public function __construct(
+        string $mcpServerScript,
+        string $templatesRoot,
         string $host = '0.0.0.0',
         int $port = 8080,
         string $authKey = 'default-secret-key-123'
@@ -57,7 +72,7 @@ class MCPHttpServerAmp
         $this->host = $host;
         $this->port = $port;
         $this->authKey = $authKey;
-        $this->mcpServerScript = $this->getProjectRoot() . '/bin/mcp_server.php';
+        $this->mcpServerScript = $mcpServerScript;
         $this->startTime = time();
 
         // Проверяем существование скрипта MCP сервера
@@ -67,11 +82,51 @@ class MCPHttpServerAmp
 
         // Настраиваем логгер
         $this->setupLogger();
+
+        $this->templatesRoot = rtrim($templatesRoot, '/');
+        if (!is_dir($this->templatesRoot)) {
+            throw new \RuntimeException("Templates directory not found: " . $this->templatesRoot);
+        }
+
+        $this->templateRenderer = new TemplateRenderer($this->templatesRoot);
+        $this->headers = self::getDefaultHeaders();
     }
 
-    private function getProjectRoot(): string
+    /**
+     * @return array<string, string>
+     */
+    private static function getDefaultHeaders(): array
     {
-        return dirname(__DIR__, 2);
+        return [
+            'content-type' => 'application/json',
+            'access-control-allow-origin' => '*',
+            'cache-control' => 'no-cache, no-store, must-revalidate'
+        ];
+    }
+
+    /**
+     * Полностью задаёт (мерджит поверх дефолтов) набор заголовков.
+     *
+     * @param array<string, string> $headers
+     */
+    public function setHeaders(array $headers): self
+    {
+        $this->headers = array_merge(self::getDefaultHeaders(), $headers);
+        return $this;
+    }
+
+    public function addHeader(string $name, string $value): self
+    {
+        $this->headers[$name] = $value;
+        return $this;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getHeaders(): array
+    {
+        return $this->headers;
     }
 
     /**
@@ -111,10 +166,10 @@ class MCPHttpServerAmp
                         $this->logger->error("Ошибка обработки запроса: " . $e->getMessage());
                         return new Response(
                             HttpStatus::INTERNAL_SERVER_ERROR,
-                            ['content-type' => 'application/json'],
-                            json_encode(
+                            $this->getHeaders(),
+                            JsonHelper::encode(
                                 HttpResponseFormatter::error(500, 'Internal server error'),
-                                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                                JsonHelper::DEFAULT_COMPACT_FLAGS
                             )
                         );
                     } finally {
@@ -159,29 +214,12 @@ class MCPHttpServerAmp
      */
     private function printServerInfo(): void
     {
-        echo "\n";
-        echo "╔══════════════════════════════════════════════════════════╗\n";
-        echo "║              MCP HTTP SERVER (AMP VERSION)              ║\n";
-        echo "╠══════════════════════════════════════════════════════════╣\n";
-        echo "║ Адрес:            http://{$this->host}:{$this->port}\n";
-        echo "║ Хост:             {$this->host}\n";
-        echo "║ Порт:             {$this->port}\n";
-        echo "║ Авторизация:      " . (!empty($this->authKey) ? "Включена" : "Отключена") . "\n";
-        echo "║ PHP версия:       " . PHP_VERSION . "\n";
-        echo "╠══════════════════════════════════════════════════════════╣\n";
-        echo "║ Доступные эндпоинты:\n";
-        echo "║   GET  /api/commands    - Список команд\n";
-        echo "║   GET  /api/resources   - Список ресурсов\n";
-        echo "║   POST /api/execute     - Выполнение команды\n";
-        echo "║   GET  /api/health      - Проверка состояния\n";
-        echo "║   GET  /api/info        - Информация о сервере\n";
-        echo "║   GET  /api/metrics     - Метрики сервера\n";
-        echo "║   GET  /                - Корневая страница\n";
-        echo "╠══════════════════════════════════════════════════════════╣\n";
-        echo "║ Управление:\n";
-        echo "║   Ctrl+C              - Остановить сервер\n";
-        echo "║   SIGTERM/SIGINT      - Graceful shutdown\n";
-        echo "╚══════════════════════════════════════════════════════════╝\n\n";
+        echo $this->templateRenderer->renderFromRoot('http/amp_print_server_info.php', [
+            'authEnabled' => !empty($this->authKey),
+            'host' => $this->host,
+            'phpVersion' => PHP_VERSION,
+            'port' => $this->port,
+        ]);
 
         $this->logger->info("Сервер готов к приему запросов");
     }
@@ -465,241 +503,15 @@ class MCPHttpServerAmp
         $memoryUsage = $this->formatBytes(memory_get_usage(true));
         $uptime = $this->getUptime();
         $currentYear = date('Y');
-
-        $html = <<<HTML
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP HTTP Server (Amp)</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-            padding: 20px;
-        }
-        .container { 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .header { 
-            text-align: center; 
-            margin-bottom: 40px;
-        }
-        .header h1 { 
-            font-size: 3em; 
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .header p { 
-            font-size: 1.2em; 
-            opacity: 0.9;
-        }
-        .status { 
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .status-indicator { 
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            background: #4CAF50;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        .endpoints { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-            gap: 20px; 
-            margin-bottom: 30px;
-        }
-        .endpoint-card { 
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 20px;
-            transition: transform 0.3s, background 0.3s;
-        }
-        .endpoint-card:hover { 
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.2);
-        }
-        .method { 
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .get { background: #4CAF50; }
-        .post { background: #2196F3; }
-        .path { 
-            font-family: monospace; 
-            font-size: 1.1em;
-            margin-bottom: 10px;
-        }
-        .description { 
-            opacity: 0.9;
-            font-size: 0.95em;
-        }
-        .footer { 
-            text-align: center; 
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.2);
-            opacity: 0.7;
-        }
-        .stats { 
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .stat-card { 
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-        .stat-value { 
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .stat-label { 
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 MCP HTTP Server (Amp)</h1>
-            <p>Высокопроизводительный HTTP интерфейс для MCP сервера</p>
-        </div>
-        
-        <div class="status">
-            <div class="status-indicator">
-                <div class="status-dot"></div>
-                <span>Сервер работает</span>
-            </div>
-            <div>Версия: 1.0.0 | Amp 3.x | PHP {$this->getPhpVersion()}</div>
-        </div>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value">{$this->activeConnections}</div>
-                <div class="stat-label">Активных соединений</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{$memoryUsage}</div>
-                <div class="stat-label">Использование памяти</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">{$uptime}</div>
-                <div class="stat-label">Время работы</div>
-            </div>
-        </div>
-        
-        <h2 style="margin: 30px 0 20px 0; color: #fff;">📡 Доступные эндпоинты</h2>
-        
-        <div class="endpoints">
-            <div class="endpoint-card">
-                <span class="method get">GET</span>
-                <div class="path">/api/commands</div>
-                <div class="description">Получить список доступных команд MCP</div>
-            </div>
-            
-            <div class="endpoint-card">
-                <span class="method get">GET</span>
-                <div class="path">/api/resources</div>
-                <div class="description">Получить список доступных ресурсов</div>
-            </div>
-            
-            <div class="endpoint-card">
-                <span class="method post">POST</span>
-                <div class="path">/api/execute</div>
-                <div class="description">Выполнить MCP команду</div>
-            </div>
-            
-            <div class="endpoint-card">
-                <span class="method get">GET</span>
-                <div class="path">/api/health</div>
-                <div class="description">Проверка состояния сервера</div>
-            </div>
-            
-            <div class="endpoint-card">
-                <span class="method get">GET</span>
-                <div class="path">/api/info</div>
-                <div class="description">Подробная информация о сервере</div>
-            </div>
-            
-            <div class="endpoint-card">
-                <span class="method get">GET</span>
-                <div class="path">/api/metrics</div>
-                <div class="description">Метрики производительности</div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <p>MCP HTTP Server (Amp) v1.0.0</p>
-            <p>Адрес сервера: http://{$this->host}:{$this->port}</p>
-            <p>© {$currentYear} MCP Server Team</p>
-        </div>
-    </div>
-    
-    <script>
-        // Обновление статистики каждые 5 секунд
-        async function updateStats() {
-            try {
-                const response = await fetch('/api/health');
-                const data = await response.json();
-                
-                if (data.server) {
-                    document.querySelector('.stat-value:nth-child(1)').textContent = 
-                        data.server.active_connections || 0;
-                    
-                    // Можно обновлять другие метрики по мере необходимости
-                }
-            } catch (error) {
-                console.error('Failed to update stats:', error);
-            }
-        }
-        
-        // Обновляем статистику каждые 5 секунд
-        setInterval(updateStats, 5000);
-        
-        // Первоначальное обновление
-        updateStats();
-    </script>
-</body>
-</html>
-HTML;
+        $html = $this->templateRenderer->renderFromRoot('http/api_root_amp.php', [
+            'activeConnections' => $this->activeConnections,
+            'currentYear' => (int) $currentYear,
+            'host' => $this->host,
+            'memoryUsage' => $memoryUsage,
+            'phpVersion' => $this->getPhpVersion(),
+            'port' => $this->port,
+            'uptime' => $uptime,
+        ]);
 
         return new Response(
             HttpStatus::OK,
@@ -715,12 +527,8 @@ HTML;
     {
         return new Response(
             $statusCode,
-            [
-                'content-type' => 'application/json',
-                'access-control-allow-origin' => '*',
-                'cache-control' => 'no-cache, no-store, must-revalidate'
-            ],
-            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            $this->getHeaders(),
+            JsonHelper::encode($data, JsonHelper::DEFAULT_PRETTY_FLAGS)
         );
     }
 

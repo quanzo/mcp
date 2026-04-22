@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\dto;
+namespace quanzo\mcp\dto;
 
 /**
  * DTO входящего запроса JSON-RPC 2.0

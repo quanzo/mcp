@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use app\modules\neuron\mcp\client\MCPClient;
+use quanzo\mcp\client\MCPClient;
 
 /**
  * Класс MCPClientServerIntegrationTest
@@ -22,7 +22,7 @@ class MCPClientServerIntegrationTest extends TestCase
      */
     public function testListCommandsFromRealServer(): void
     {
-        $serverScript = __DIR__ . '/../../mcp_server.php';
+        $serverScript = __DIR__ . '/../../bin/mcp_server.php';
 
         if (!file_exists($serverScript)) {
             $this->markTestSkipped('Скрипт сервера mcp_server.php не найден для интеграционного теста');

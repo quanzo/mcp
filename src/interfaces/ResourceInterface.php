@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\interfaces;
+namespace quanzo\mcp\interfaces;
 
 /**
  * Интерфейс ResourceInterface

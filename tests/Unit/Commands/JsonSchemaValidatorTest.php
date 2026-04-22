@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Commands;
 
 use PHPUnit\Framework\TestCase;
-use app\modules\neuron\mcp\validation\JsonSchemaValidator;
+use quanzo\mcp\validation\JsonSchemaValidator;
 
 /**
  * Класс JsonSchemaValidatorTest

@@ -1,9 +1,9 @@
 <?php
 
-namespace app\modules\neuron\mcp;
+namespace quanzo\mcp;
 
-use app\modules\neuron\mcp\client\MCPClient;
-use app\modules\neuron\mcp\http\HttpResponseFormatter;
+use quanzo\mcp\client\MCPClient;
+use quanzo\mcp\http\HttpResponseFormatter;
 
 /**
  * HTTP сервер для MCP сервера
@@ -33,12 +33,17 @@ class MCPHttpServer
         $this->port = $port;
         $this->authKey = $authKey;
         $this->host = $host;
-        $this->mcpServerScript = __DIR__ . '/../mcp_server.php';
+        $this->mcpServerScript = $this->getProjectRoot() . '/bin/mcp_server.php';
 
         // Проверяем существование скрипта MCP сервера
         if (!file_exists($this->mcpServerScript)) {
             throw new \RuntimeException("MCP сервер не найден: " . $this->mcpServerScript);
         }
+    }
+
+    private function getProjectRoot(): string
+    {
+        return dirname(__DIR__, 2);
     }
 
     /**
@@ -278,7 +283,7 @@ class MCPHttpServer
         echo "Длина ключа: " . strlen($this->authKey) . " символов\n\n";
 
         echo "Логирование:\n";
-        echo "  Логи MCP сервера: " . __DIR__ . "/logs/mcp-server.log\n";
+        echo "  Логи MCP сервера: " . $this->getProjectRoot() . "/logs/mcp-server.log\n";
         echo "  Логи HTTP сервера: вывод в консоль\n\n";
 
         // Запускаем встроенный сервер PHP

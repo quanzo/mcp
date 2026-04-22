@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\interfaces;
+namespace quanzo\mcp\interfaces;
 
 /**
  * Интерфейс CommandInterface
@@ -39,7 +39,7 @@ interface CommandInterface
      *
      * @return void
      *
-     * @throws \app\modules\neuron\mcp\validation\ValidationException Если параметры не соответствуют схеме
+     * @throws \quanzo\mcp\validation\ValidationException Если параметры не соответствуют схеме
      */
     public function validateInput(array $params): void;
 

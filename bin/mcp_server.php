@@ -1,7 +1,7 @@
 <?php
 /**
- * Скрипт запуска MCP сервера (mcp_server.php)
- * 
+ * Скрипт запуска MCP сервера (bin/mcp_server.php)
+ *
  * Демонстрирует базовое использование MCP сервера:
  * 1. Создание логгера
  * 2. Инициализация сервера с авторизацией
@@ -9,15 +9,17 @@
  * 4. Запуск сервера в stdio режиме
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+$projectRoot = dirname(__DIR__);
 
-use app\modules\neuron\mcp\Server;
-use app\modules\neuron\mcp\log\FileLogger;
-use app\modules\neuron\mcp\commands\EchoCommand;
-use app\modules\neuron\mcp\commands\CalculateCommand;
-use app\modules\neuron\mcp\commands\UserCommand;
-use app\modules\neuron\mcp\commands\MyCustomCommand;
-use app\modules\neuron\mcp\resources\FileResource;
+require_once $projectRoot . '/vendor/autoload.php';
+
+use quanzo\mcp\Server;
+use quanzo\mcp\log\FileLogger;
+use quanzo\mcp\commands\EchoCommand;
+use quanzo\mcp\commands\CalculateCommand;
+use quanzo\mcp\commands\UserCommand;
+use quanzo\mcp\commands\MyCustomCommand;
+use quanzo\mcp\resources\FileResource;
 
 // Проверка версии PHP
 if (version_compare(PHP_VERSION, '8.1.0', '<')) {
@@ -27,14 +29,14 @@ if (version_compare(PHP_VERSION, '8.1.0', '<')) {
 // Создаем директории для логов и конфигурации
 $directories = ['logs', 'config', 'data'];
 foreach ($directories as $dir) {
-    if (!is_dir(__DIR__ . '/' . $dir)) {
-        mkdir(__DIR__ . '/' . $dir, 0755, true);
+    if (!is_dir($projectRoot . '/' . $dir)) {
+        mkdir($projectRoot . '/' . $dir, 0755, true);
     }
 }
 
 // Настройка логгера
 $logger = new FileLogger(
-    __DIR__ . '/logs/mcp-server.log',
+    $projectRoot . '/logs/mcp-server.log',
     \Psr\Log\LogLevel::INFO
 );
 
@@ -56,20 +58,20 @@ try {
         new FileResource(
             'file://logs/mcp-server.log',
             'text/plain',
-            __DIR__ . '/logs'
+            $projectRoot . '/logs'
         )
     );
-    
+
     $server->registerResource(
         new FileResource(
             'config://server.json',
             'application/json',
-            __DIR__ . '/config'
+            $projectRoot . '/config'
         )
     );
-    
+
     // Загрузка или создание конфигурационного файла
-    $configFile = __DIR__ . '/config/server.json';
+    $configFile = $projectRoot . '/config/server.json';
     $serverConfig = null;
     if (file_exists($configFile)) {
         $serverConfig = json_decode(file_get_contents($configFile), true);
@@ -95,12 +97,11 @@ try {
         'version' => $serverVersion,
         'auth_key_set' => true
     ]);
-    $logger->info('Логи записываются в ' . __DIR__ . '/logs/mcp-server.log');
+    $logger->info('Логи записываются в ' . $projectRoot . '/logs/mcp-server.log');
     $logger->info('Ожидание запросов через stdio...');
-    
+
     // Запуск сервера
     $server->run();
-    
 } catch (\Exception $e) {
     $logger->error('Ошибка при запуске сервера', [
         'message' => $e->getMessage(),
@@ -109,3 +110,4 @@ try {
     echo "Ошибка: " . $e->getMessage() . "\n";
     exit(1);
 }
+

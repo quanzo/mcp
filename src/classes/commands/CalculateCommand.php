@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\commands;
+namespace quanzo\mcp\commands;
 
 /**
  * Класс CalculateCommand

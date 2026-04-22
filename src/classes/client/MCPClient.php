@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\client;
+namespace quanzo\mcp\client;
 
 use Psr\Log\LoggerInterface;
 

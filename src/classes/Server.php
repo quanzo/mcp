@@ -1,13 +1,13 @@
 <?php
 
-namespace app\modules\neuron\mcp;
+namespace quanzo\mcp;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use app\modules\neuron\mcp\interfaces\CommandInterface;
-use app\modules\neuron\mcp\interfaces\ResourceInterface;
-use app\modules\neuron\mcp\validation\ValidationException;
-use app\modules\neuron\mcp\dto\JsonRpcRequest;
+use quanzo\mcp\interfaces\CommandInterface;
+use quanzo\mcp\interfaces\ResourceInterface;
+use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\dto\JsonRpcRequest;
 
 /**
  * Класс Server

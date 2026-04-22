@@ -1,8 +1,8 @@
 <?php
 
-namespace app\modules\neuron\mcp\resources;
+namespace quanzo\mcp\resources;
 
-use app\modules\neuron\mcp\interfaces\ResourceInterface;
+use quanzo\mcp\interfaces\ResourceInterface;
 
 /**
  * Класс MyResource

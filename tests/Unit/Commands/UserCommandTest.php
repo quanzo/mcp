@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Commands;
 
 use PHPUnit\Framework\TestCase;
-use app\modules\neuron\mcp\commands\UserCommand;
-use app\modules\neuron\mcp\validation\ValidationException;
+use quanzo\mcp\commands\UserCommand;
+use quanzo\mcp\validation\ValidationException;
 
 /**
  * Класс UserCommandTest

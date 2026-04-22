@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\validation;
+namespace quanzo\mcp\validation;
 
 /**
  * Класс JsonSchemaValidator

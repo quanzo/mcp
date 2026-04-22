@@ -1,5 +1,5 @@
 {
-    "name": "vendor/mcp-server",
+    "name": "quanzo/mcp",
     "description": "MCP Server implementation in PHP 8.1",
     "type": "project",
     "require": {
@@ -19,7 +19,7 @@
     },
     "autoload": {
         "psr-4": {
-            "app\\modules\\neuron\\mcp\\": "src/"
+            "quanzo\\mcp\\": "src/"
         }
     },
     "authors": [

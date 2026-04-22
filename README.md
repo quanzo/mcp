@@ -47,29 +47,33 @@ export MCP_AUTH_KEY="your-secret-key-here"
 ## Структура проекта
 
 ```
-src/app/modules/neuron/mcp/
-├── interfaces/
-│   ├── CommandInterface.php      # Интерфейс для команд
-│   └── ResourceInterface.php     # Интерфейс для ресурсов
-├── commands/
-│   ├── BaseCommand.php           # Базовый класс команд
-│   ├── ValidationException.php   # Исключение валидации
-│   ├── JsonSchemaValidator.php   # Валидатор JSON Schema
-│   ├── EchoCommand.php           # Пример команды echo
-│   ├── CalculateCommand.php      # Пример команды calculate
-│   └── UserCommand.php           # Пример команды user.create
-├── resources/
-│   └── FileResource.php          # Пример ресурса для файлов
-├── log/
-│   └── FileLogger.php            # Файловый логгер
-├── client/
-│   └── MCPClient.php             # Клиент для тестирования
-└── Server.php                    # Основной класс сервера
+bin/
+├── mcp_server.php                # Точка входа MCP сервера (stdio)
+├── http_server.php               # HTTP гейтвей (встроенный PHP сервер)
+├── http_server_amp.php           # HTTP гейтвей на Amp
+└── test_client.php               # CLI-клиент для демонстрации/тестирования
 
-mcp_server.php                    # Точка входа сервера
-test_client.php                   # Скрипт тестирования
-composer.json                     # Конфигурация Composer
-README.md                         # Документация
+src/
+├── classes/                      # Классы проекта
+│   ├── Server.php                # MCP сервер (stdio)
+│   ├── MCPHttpServer.php         # HTTP гейтвей (sync)
+│   ├── MCPHttpServerAmp.php      # HTTP гейтвей (Amp)
+│   ├── commands/                 # Команды (tools)
+│   ├── resources/                # Ресурсы
+│   ├── validation/               # Валидация JSON Schema
+│   ├── client/                   # MCPClient (stdio)
+│   ├── dto/                      # DTO для JSON-RPC
+│   ├── log/                      # Логирование
+│   └── http/                     # HTTP-утилиты
+├── interfaces/                   # Интерфейсы
+├── helpers/                      # Хелперы (при необходимости)
+├── traits/                       # Трейты (при необходимости)
+└── enums/                        # Enum'ы (при необходимости)
+
+docs/
+└── mcp-nuances.md                # Тонкости MCP в этой реализации
+
+tests/                            # Unit/Integration тесты
 ```
 
 ## Использование
@@ -78,16 +82,16 @@ README.md                         # Документация
 
 ```bash
 # Прямой запуск
-php mcp_server.php
+php bin/mcp_server.php
 
 # С указанием ключа авторизации
-MCP_AUTH_KEY="my-key" php mcp_server.php
+MCP_AUTH_KEY="my-key" php bin/mcp_server.php
 ```
 
 ### Тестирование с помощью клиента
 
 ```bash
-php test_client.php
+php bin/test_client.php
 ```
 
 ### Примеры запросов
@@ -149,13 +153,13 @@ php test_client.php
 
 ## Создание собственных команд
 
-1. Создайте новый класс в пространстве имен app\modules\neuron\mcp\commands:
+1. Создайте новый класс в пространстве имен quanzo\mcp\commands:
 
 ```php
-namespace app\modules\neuron\mcp\commands;
+namespace quanzo\mcp\commands;
 
-use app\modules\neuron\mcp\commands\BaseCommand;
-use app\modules\neuron\mcp\commands\ValidationException;
+use quanzo\mcp\commands\BaseCommand;
+use quanzo\mcp\validation\ValidationException;
 
 class MyCustomCommand extends BaseCommand
 {
@@ -193,7 +197,7 @@ class MyCustomCommand extends BaseCommand
 2. Зарегистрируйте команду в сервере:
 
 ```php
-use app\modules\neuron\mcp\commands\MyCustomCommand;
+use quanzo\mcp\commands\MyCustomCommand;
 
 $server->registerCommand(new MyCustomCommand());
 ```
@@ -203,9 +207,9 @@ $server->registerCommand(new MyCustomCommand());
 Создайте новый класс ресурса:
 
 ```php
-namespace app\modules\neuron\mcp\resources;
+namespace quanzo\mcp\resources;
 
-use app\modules\neuron\mcp\interfaces\ResourceInterface;
+use quanzo\mcp\interfaces\ResourceInterface;
 
 class MyResource implements ResourceInterface
 {
@@ -239,7 +243,7 @@ class MyResource implements ResourceInterface
 2. Зарегистрируйте ресурс в сервере:
 
 ```php
-use app\modules\neuron\mcp\resources\MyResource;
+use quanzo\mcp\resources\MyResource;
 
 $server->registerResource(new MyResource());
 ```
@@ -249,7 +253,7 @@ $server->registerResource(new MyResource());
 По умолчанию логи записываются в файл logs/mcp-server.log. Вы можете изменить уровень логирования:
 
 ```php
-use app\modules\neuron\mcp\log\FileLogger;
+use quanzo\mcp\log\FileLogger;
 
 $logger = new FileLogger(
     __DIR__ . '/logs/mcp-server.log',
@@ -270,7 +274,7 @@ $logger = new FileLogger(
 В каждом запросе в параметре auth
 
 ```php
-use app\modules\neuron\mcp\Server;
+use quanzo\mcp\Server;
 
 $server = new Server('my-secret-key', $logger);
 ```
@@ -286,8 +290,8 @@ $server = new Server('my-secret-key', $logger);
 ```php
 require_once 'vendor/autoload.php';
 
-use app\modules\neuron\mcp\Server;
-use app\modules\neuron\mcp\log\FileLogger;
+use quanzo\mcp\Server;
+use quanzo\mcp\log\FileLogger;
 
 // Настройка логгера
 $logger = new FileLogger('/var/log/mcp-server.log');
@@ -305,7 +309,7 @@ $server->run();
 ## Использование через CLI:
 ```bash
 # Запуск сервера в фоновом режиме
-nohup php mcp_server.php > /dev/null 2>&1 &
+nohup php bin/mcp_server.php > /dev/null 2>&1 &
 
 # Отправка запроса через curl (если реализован HTTP интерфейс)
 curl -X POST http://localhost:8000/api/mcp/execute -H "Content-Type: application/json" -d '{"command": "echo", "params": {"message": "Hello"}}'
@@ -313,12 +317,12 @@ curl -X POST http://localhost:8000/api/mcp/execute -H "Content-Type: application
 
 ## Класс MCPClient
 
-Для удобства тестирования и интеграции предоставлен класс MCPClient в пространстве имен app\modules\neuron\mcp\client. Он позволяет взаимодействовать с сервером через stdio:
+Для удобства тестирования и интеграции предоставлен класс MCPClient в пространстве имен quanzo\mcp\client. Он позволяет взаимодействовать с сервером через stdio:
 
 ```php
-use app\modules\neuron\mcp\client\MCPClient;
+use quanzo\mcp\client\MCPClient;
 
-$client = new MCPClient(__DIR__ . '/mcp_server.php', 'your-secret-key');
+$client = new MCPClient(__DIR__ . '/bin/mcp_server.php', 'your-secret-key');
 
 // Получение списка команд
 $commands = $client->listCommands();
@@ -330,15 +334,19 @@ $result = $client->sendRequest('echo', ['message' => 'Hello']);
 
 ```bash
 # Простая версия (встроенный PHP сервер)
-php http_server.php -p 8080 -k my-secret-key
+php bin/http_server.php -p 8080 -k my-secret-key
 ```
 
 ```bash
 # Amp версия (высокая производительность)
-php http_server_amp.php 0.0.0.0 8080 my-secret-key
+php bin/http_server_amp.php 0.0.0.0 8080 my-secret-key
 ```
 
 ```bash
 # Запуск в фоновом режиме
-nohup php http_server_amp.php 0.0.0.0 8080 > /var/log/mcp-http.log 2>&1 &
+nohup php bin/http_server_amp.php 0.0.0.0 8080 > /var/log/mcp-http.log 2>&1 &
 ```
+
+## Документация по нюансам MCP
+
+См. `docs/mcp-nuances.md`.

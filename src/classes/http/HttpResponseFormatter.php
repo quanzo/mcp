@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\http;
+namespace quanzo\mcp\http;
 
 /**
  * Форматтер HTTP-ответов для MCP HTTP API

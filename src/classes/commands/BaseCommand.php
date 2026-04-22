@@ -1,10 +1,10 @@
 <?php
 
-namespace app\modules\neuron\mcp\commands;
+namespace quanzo\mcp\commands;
 
-use app\modules\neuron\mcp\interfaces\CommandInterface;
-use app\modules\neuron\mcp\validation\JsonSchemaValidator;
-use app\modules\neuron\mcp\validation\ValidationException;
+use quanzo\mcp\interfaces\CommandInterface;
+use quanzo\mcp\validation\JsonSchemaValidator;
+use quanzo\mcp\validation\ValidationException;
 
 /**
  * Абстрактный класс BaseCommand

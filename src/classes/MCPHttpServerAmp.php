@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp;
+namespace quanzo\mcp;
 
 use Amp\ByteStream\WritableResourceStream;
 use Amp\Http\HttpStatus;
@@ -19,8 +19,8 @@ use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Socket\ServerSocketFactory;
 use Monolog\Logger;
 use Revolt\EventLoop;
-use app\modules\neuron\mcp\client\MCPClient;
-use app\modules\neuron\mcp\http\HttpResponseFormatter;
+use quanzo\mcp\client\MCPClient;
+use quanzo\mcp\http\HttpResponseFormatter;
 
 /**
  * Продвинутый HTTP сервер для MCP на основе Amp
@@ -57,7 +57,7 @@ class MCPHttpServerAmp
         $this->host = $host;
         $this->port = $port;
         $this->authKey = $authKey;
-        $this->mcpServerScript = __DIR__ . '/../mcp_server.php';
+        $this->mcpServerScript = $this->getProjectRoot() . '/bin/mcp_server.php';
         $this->startTime = time();
 
         // Проверяем существование скрипта MCP сервера
@@ -67,6 +67,11 @@ class MCPHttpServerAmp
 
         // Настраиваем логгер
         $this->setupLogger();
+    }
+
+    private function getProjectRoot(): string
+    {
+        return dirname(__DIR__, 2);
     }
 
     /**
@@ -207,9 +212,6 @@ class MCPHttpServerAmp
 
             case $method === 'GET' && $path === '/api/info':
                 return $this->handleServerInfo($request);
-
-            case $method === 'GET' && $path === '/api/metrics':
-                return $this->handleMetrics($request);
 
             case $method === 'GET' && ($path === '/' || $path === '/api'):
                 return $this->handleApiRoot($request);

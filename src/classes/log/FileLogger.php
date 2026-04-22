@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\neuron\mcp\log;
+namespace quanzo\mcp\log;
 
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;

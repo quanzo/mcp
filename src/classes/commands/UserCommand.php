@@ -1,8 +1,8 @@
 <?php
 
-namespace app\modules\neuron\mcp\commands;
+namespace quanzo\mcp\commands;
 
-use app\modules\neuron\mcp\validation\ValidationException;
+use quanzo\mcp\validation\ValidationException;
 
 /**
  * Класс UserCommand

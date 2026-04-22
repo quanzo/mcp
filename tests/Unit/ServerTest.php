@@ -6,10 +6,10 @@ namespace Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use app\modules\neuron\mcp\Server;
-use app\modules\neuron\mcp\commands\BaseCommand;
-use app\modules\neuron\mcp\validation\ValidationException;
-use app\modules\neuron\mcp\interfaces\ResourceInterface;
+use quanzo\mcp\Server;
+use quanzo\mcp\commands\BaseCommand;
+use quanzo\mcp\validation\ValidationException;
+use quanzo\mcp\interfaces\ResourceInterface;
 
 /**
  * Класс ServerTest
@@ -217,6 +217,11 @@ class ServerTest extends TestCase
 
         self::assertArrayHasKey('result', $response);
         self::assertArrayHasKey('ok', $response['result']);
+        self::assertSame(
+            ['foo' => 'bar'],
+            $command->lastParams,
+            'auth param must be stripped before command execution'
+        );
     }
 
     /**
@@ -299,6 +304,46 @@ class ServerTest extends TestCase
         ]);
     }
 
+    public function testReadResourceMatchesUriPatternAndHandlesMissingFile(): void
+    {
+        $server = $this->createServer();
+
+        $tmpDir = sys_get_temp_dir() . '/mcp-resource-test-' . uniqid('', true);
+        if (!mkdir($tmpDir, 0755, true) && !is_dir($tmpDir)) {
+            self::fail('Failed to create temp dir for resource test');
+        }
+
+        $filename = 'test.txt';
+        $content = 'hello';
+        file_put_contents($tmpDir . '/' . $filename, $content);
+
+        $resource = new \quanzo\mcp\resources\FileResource(
+            'file://logs/*',
+            'text/plain',
+            $tmpDir
+        );
+        $server->registerResource($resource);
+
+        $patternMatchResponse = $this->invokeHandleRequest($server, [
+            'jsonrpc' => '2.0',
+            'id' => 17,
+            'method' => 'mcp.readResource',
+            'params' => ['uri' => 'file://logs/' . $filename],
+        ]);
+
+        self::assertArrayHasKey('result', $patternMatchResponse);
+        self::assertSame($content, $patternMatchResponse['result']['content']);
+
+        $this->expectException(\RuntimeException::class);
+
+        $this->invokeHandleRequest($server, [
+            'jsonrpc' => '2.0',
+            'id' => 18,
+            'method' => 'mcp.readResource',
+            'params' => ['uri' => 'file://logs/missing.txt'],
+        ]);
+    }
+
     /**
      * Вспомогательный метод для вызова приватного handleRequest через Reflection
      *
@@ -311,7 +356,6 @@ class ServerTest extends TestCase
     {
         $reflection = new \ReflectionClass($server);
         $method = $reflection->getMethod('handleRequest');
-        $method->setAccessible(true);
 
         /** @var array $response */
         $response = $method->invoke($server, $request);

@@ -1,7 +1,7 @@
 <?php
 /**
- * Клиент для тестирования MCP сервера (test_client.php)
- * 
+ * Клиент для тестирования MCP сервера (bin/test_client.php)
+ *
  * Демонстрирует:
  * 1. Запуск MCP сервера как дочернего процесса
  * 2. Отправку запросов через STDIN
@@ -9,19 +9,21 @@
  * 4. Обработку ошибок и валидации
  */
 
-require_once __DIR__ . '/vendor/autoload.php';
+$projectRoot = dirname(__DIR__);
 
-use app\modules\neuron\mcp\client\MCPClient;
+require_once $projectRoot . '/vendor/autoload.php';
+
+use quanzo\mcp\client\MCPClient;
 
 /**
  * Основной скрипт тестирования
  */
 try {
     echo "=== Тестирование MCP сервера ===\n\n";
-    
+
     // Инициализация клиента
-    $client = new MCPClient(__DIR__ . '/mcp_server.php', 'default-secret-key-123');
-    
+    $client = new MCPClient($projectRoot . '/bin/mcp_server.php', 'default-secret-key-123');
+
     // Тест 1: Получение списка команд
     echo "1. Получение списка команд:\n";
     $commands = $client->listCommands();
@@ -29,7 +31,7 @@ try {
         echo "   - {$command['name']}: {$command['description']}\n";
     }
     echo "\n";
-    
+
     // Тест 2: Получение списка ресурсов
     echo "2. Получение списка ресурсов:\n";
     $resources = $client->listResources();
@@ -37,7 +39,7 @@ try {
         echo "   - {$resource['uri']} ({$resource['mimeType']})\n";
     }
     echo "\n";
-    
+
     // Тест 3: Выполнение команды echo
     echo "3. Тестирование команды echo:\n";
     $echoResponse = $client->sendRequest('echo', ['message' => 'Привет, MCP сервер!']);
@@ -47,7 +49,7 @@ try {
         echo "   Ошибка: " . json_encode($echoResponse['error'], JSON_UNESCAPED_UNICODE) . "\n";
     }
     echo "\n";
-    
+
     // Тест 4: Выполнение команды calculate
     echo "4. Тестирование команды calculate:\n";
     $calcResponse = $client->sendRequest('calculate', [
@@ -62,7 +64,7 @@ try {
         echo "   Ошибка: " . json_encode($calcResponse['error'], JSON_UNESCAPED_UNICODE) . "\n";
     }
     echo "\n";
-    
+
     // Тест 5: Выполнение команды user.create с валидными данными
     echo "5. Тестирование команды user.create (валидные данные):\n";
     $userResponse = $client->sendRequest('user.create', [
@@ -81,7 +83,7 @@ try {
         echo "   Ошибка: " . json_encode($userResponse['error'], JSON_UNESCAPED_UNICODE) . "\n";
     }
     echo "\n";
-    
+
     // Тест 6: Выполнение команды user.create с невалидными данными
     echo "6. Тестирование команды user.create (невалидные данные):\n";
     $invalidUserResponse = $client->sendRequest('user.create', [
@@ -97,7 +99,7 @@ try {
         }
     }
     echo "\n";
-    
+
     // Тест 7: Попытка выполнения несуществующей команды
     echo "7. Тестирование несуществующей команды:\n";
     $unknownResponse = $client->sendRequest('unknown.command', ['test' => 'data']);
@@ -105,24 +107,24 @@ try {
         echo "   Ожидаемая ошибка: {$unknownResponse['error']['message']}\n";
     }
     echo "\n";
-    
+
     // Тест 8: Попытка доступа без авторизации
     echo "8. Тестирование доступа без авторизации:\n";
-    $clientWithoutAuth = new MCPClient(__DIR__ . '/mcp_server.php', 'wrong-key');
+    $clientWithoutAuth = new MCPClient($projectRoot . '/bin/mcp_server.php', 'wrong-key');
     $authErrorResponse = $clientWithoutAuth->sendRequest('echo', ['message' => 'test']);
     if (isset($authErrorResponse['error'])) {
         echo "   Ожидаемая ошибка авторизации: {$authErrorResponse['error']['message']}\n";
     }
     $clientWithoutAuth->close();
     echo "\n";
-    
+
     echo "=== Все тесты завершены ===\n";
-    
+
     // Закрываем соединение
     $client->close();
-    
 } catch (Exception $e) {
     echo "Ошибка: " . $e->getMessage() . "\n";
     echo "Трассировка: " . $e->getTraceAsString() . "\n";
     exit(1);
 }
+

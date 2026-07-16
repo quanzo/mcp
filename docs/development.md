@@ -1,21 +1,39 @@
 ## Разработка
 
-### Проверки качества
-
-Из корня проекта:
+### Проверки
 
 ```bash
-composer dump-autoload
 ./vendor/bin/phpcs
 ./vendor/bin/phpstan analyse
 ./vendor/bin/phpunit
 ```
 
-### Частые проблемы
+### Архитектура при изменениях
 
-- **Тесты “висят”**: почти всегда это отсутствие перевода строки в stdio-обмене (см. `docs/mcp-protocol.md` и `docs/mcp-nuances.md`).
-- **Class not found**: проверьте соответствие FQCN ↔ путь по PSR-4 и пересоберите autoload: `composer dump-autoload`.
-- **Валидация падает “неожиданно”**: `JsonSchemaValidator` оборачивает `pattern` в якоря (полное совпадение), и при `additionalProperties: false` лишние поля запрещены.
-- **Разный JSON в разных местах**: используйте `quanzo\mcp\helpers\JsonHelper` вместо прямых `json_encode/json_decode`, чтобы флаги и обработка ошибок были единообразны.
-- **HTML/текст сложно поддерживать в heredoc**: выносите в `src/templates/` и рендерите через `quanzo\mcp\helpers\TemplateRenderer`.
+1. Протокольные изменения — только `McpServer` + DTO в `dto/mcp/`
+2. Framing — `StdioTransport` / `StreamableHttpTransport`
+3. **Не добавлять** кастомные JSON-RPC методы и REST «обёртки» над MCP (`mcp.listCommands`, `/api/execute` и т.п.)
 
+### Resilience-тесты
+
+Обязательно покрывать:
+
+- граничные значения (пустые строки, min/max, `id: null`);
+- заведомо неверные данные (кривые типы, битый JSON, unknown tool, divide-by-zero);
+- ожидание: JSON-RPC error / `isError: true` / HTTP 4xx — **без uncaught и без падения процесса**;
+- после ошибки следующий валидный запрос должен обрабатываться.
+
+Ключевые файлы: `tests/Unit/McpServerTest.php`, `tests/Unit/Transport/*`, `tests/Unit/Commands/JsonSchemaValidatorTest.php`, `tests/Integration/*`.
+
+Минимум 10 кейсов в data-driven наборах валидации; каждый test-метод с русским комментарием.
+
+### PHPDoc (AGENTS.md)
+
+- класс: заголовок, описание, пример использования;
+- свойство: русский комментарий + `@var`;
+- метод: назначение, `@param` / `@return` / `@throws`;
+- нетривиальная логика (lifecycle, sessions, framing, `isError`) — поясняющие комментарии «почему».
+
+### Документация
+
+После изменений обновляйте `docs/` — справочник для агентов. Карта: `docs/overview.md`.

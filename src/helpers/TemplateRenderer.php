@@ -9,9 +9,17 @@ namespace quanzo\mcp\helpers;
  *
  * Рендерит PHP-шаблоны из каталога `src/templates`.
  * Данные передаются массивом и доступны внутри шаблона как переменные.
+ *
+ * Пример использования:
+ *   $html = (new TemplateRenderer($root))->renderFromRoot('http/api_root_amp.php', ['host' => '127.0.0.1']);
  */
 final class TemplateRenderer
 {
+    /**
+     * Абсолютный путь к корню шаблонов
+     *
+     * @var string
+     */
     private string $templatesRoot;
 
     /**

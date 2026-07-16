@@ -26,7 +26,7 @@ class UserCommand extends BaseCommand
      */
     public function __construct($emailTakenChecker = null)
     {
-        $this->name = 'user.create';
+        $this->name = 'user_create';
         $this->description = 'Создание нового пользователя';
         $this->emailTakenChecker = $emailTakenChecker ?? ['admin@example.com', 'test@example.com'];
     }

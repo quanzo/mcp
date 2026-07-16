@@ -5,8 +5,14 @@ namespace quanzo\mcp\classes\validation;
 /**
  * Класс JsonSchemaValidator
  *
- * Реализует валидацию данных по JSON Schema.
- * Поддерживает основные типы данных и ограничения JSON Schema.
+ * Реализует валидацию данных по JSON Schema (подмножество).
+ * Поддерживает type, required, enum, min/max, minLength/maxLength, pattern,
+ * properties, items, additionalProperties: false.
+ * Не бросает исключения — возвращает список ошибок (пустой = OK).
+ *
+ * Пример использования:
+ *   $errors = JsonSchemaValidator::validate($data, $schema);
+ *   if ($errors !== []) { throw new ValidationException($errors); }
  */
 class JsonSchemaValidator
 {

@@ -5,9 +5,11 @@ namespace quanzo\mcp\interfaces;
 /**
  * Интерфейс CommandInterface
  *
- * Определяет контракт для команд MCP сервера.
- * Каждая команда представляет собой отдельную операцию, которая может быть
- * выполнена сервером по запросу клиента.
+ * Контракт MCP tool: имя, описание, JSON Schema аргументов, execute.
+ *
+ * Пример использования:
+ *   $server->registerCommand(new EchoCommand());
+ *   // клиент: tools/call { "name": "echo", "arguments": { "message": "hi" } }
  */
 interface CommandInterface
 {

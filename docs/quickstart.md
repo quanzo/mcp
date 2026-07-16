@@ -1,42 +1,49 @@
-## Quickstart
+## Быстрый старт
 
-### Установка
+### Stdio
 
 ```bash
 composer install
-```
-
-### Запуск MCP (stdio)
-
-```bash
 php bin/mcp_server.php
 ```
 
-Ключ авторизации берётся из переменной окружения `MCP_AUTH_KEY` (или используется дефолт внутри скрипта).
-
-### Запуск HTTP gateway (sync, встроенный php -S)
-
-```bash
-php bin/http_server.php --port=8080 --host=0.0.0.0 --key=my-secret-key
-```
-
-### Запуск HTTP gateway (Amp)
-
-```bash
-php bin/http_server_amp.php 0.0.0.0 8080 my-secret-key
-```
-
-### Демо-клиент
+В другом терминале:
 
 ```bash
 php bin/test_client.php
 ```
 
-### Минимальный JSON-RPC запрос (stdio)
-
-Один запрос — одна строка JSON (обязательно заканчивается переводом строки).
+### Подключение агента (Cursor)
 
 ```json
-{"jsonrpc":"2.0","id":1,"method":"mcp.listCommands","params":{"auth":"your-secret-key"}}
+{
+  "mcpServers": {
+    "quanzo-mcp": {
+      "command": "php",
+      "args": ["/absolute/path/to/mcp/bin/mcp_server.php"]
+    }
+  }
+}
 ```
 
+### Streamable HTTP
+
+```bash
+php bin/http_server.php -h 127.0.0.1 -p 8080
+```
+
+Endpoint: `http://127.0.0.1:8080/mcp`
+
+### Демо-tools
+
+| Name | Описание |
+|---|---|
+| `echo` | Эхо сообщения |
+| `calculate` | Арифметика |
+| `user_create` | Создание пользователя |
+| `my_command` | Пример кастомной команды |
+
+### Пример ошибки (ожидаемое поведение)
+
+Вызов `calculate` с `b: 0` возвращает MCP result с `isError: true` (процесс не падает).  
+Битый JSON на stdio → ответ `-32700`, сервер продолжает слушать.

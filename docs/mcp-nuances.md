@@ -1,152 +1,56 @@
-# Тонкости MCP (Model Context Protocol) в этой реализации
+## Нюансы реализации
 
-Этот документ описывает не «теорию MCP вообще», а **конкретные нюансы текущей реализации** в этом репозитории: как устроены stdio-обмен, JSON-RPC сообщения, авторизация, ошибки, ресурсы и HTTP-гейтвеи.
+### Протокол vs транспорт
 
-См. также:
-- `docs/overview.md`
-- `docs/quickstart.md`
-- `docs/mcp-protocol.md`
-- `docs/http-gateway.md`
-- `docs/commands.md`
-- `docs/resources.md`
+`McpServer::handleMessage()` не знает про stdio/HTTP.  
+Транспорт только доставляет JSON-RPC и оформляет framing/HTTP status.
 
-## 1) MCP и JSON-RPC 2.0: что именно принимает сервер
+Смотреть:
 
-Сервер работает поверх **JSON-RPC 2.0** и читает запросы из `STDIN` построчно.
+- протокол → `src/classes/McpServer.php`
+- stdio → `src/classes/transport/StdioTransport.php`
+- HTTP → `src/classes/transport/StreamableHttpTransport.php`
 
-- **Один запрос = одна строка JSON** (заканчивается переводом строки).
-- **Один ответ = одна строка JSON** (сервер пишет в `STDOUT` и добавляет перевод строки).
+### Tools и isError
 
-Минимальный запрос (как массив при `json_decode(..., true)`):
+`CommandInterface::execute()` возвращает `array`.  
+`McpServer` оборачивает в:
 
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "mcp.listCommands",
-  "params": {
-    "auth": "your-secret-key"
-  }
+  "content": [{"type": "text", "text": "{...json...}"}],
+  "isError": false
 }
 ```
 
-Ключевые поля:
-- **`jsonrpc`**: ожидается `"2.0"` (в текущей реализации это поле не валидируется строго, но его стоит передавать корректно).
-- **`id`**: может быть `string|int|null`. Если `id` отсутствует, сервер в ряде ошибок будет возвращать `id = null`.
-- **`method`**: строка. Это либо **MCP-метод** (`mcp.*`), либо **имя команды** (tool) — например `echo`.
-- **`params`**: объект (в PHP представлен массивом). Если поля нет — трактуется как пустой массив.
+| Ситуация | Ответ |
+|---|---|
+| Ошибка схемы / unknown tool | JSON-RPC `-32602` |
+| Runtime tool (например деление на ноль) | `result.isError: true` |
+| Непойманный сбой вне tool | `-32603` |
 
-### MCP-методы vs команды (tools)
+### Notifications
 
-В этой реализации различаются:
-- **Системные MCP-методы** (жёстко заданная карта):
-  - `mcp.listCommands`
-  - `mcp.listResources`
-  - `mcp.readResource`
-- **Команды** (tools): всё, что **не** попало в список MCP-методов, трактуется как «выполнить команду с таким именем».
+Сообщения без поля `id` — notifications: ответ не отправляется (stdio) / HTTP **202**.
 
-Это важно: один и тот же JSON-RPC формат, но семантика разная.
+### Capabilities
 
-## 2) Авторизация: `params.auth` и его судьба
+Пустой object `{}` (не `[]`).  
+При наличии tools/resources: `tools: {}` и/или `resources: {}`.
 
-Если сервер создан с ключом авторизации (например, через `new Server($authKey, ...)`):
-- сервер ожидает, что **в каждом запросе** в `params` будет `auth`;
-- если `auth` не совпадает — сервер бросает исключение и вернёт ошибку;
-- при успешной авторизации сервер **удаляет `auth` из `params`**, и команда получает параметры **без** `auth`.
+### HTTP-сессии
 
-Почему это важно:
-- команда не должна случайно логировать/возвращать `auth`;
-- схема входных параметров команды (`getInputSchema()`) не обязана включать `auth`.
+Каждая сессия — отдельный `McpServer` (`createSessionInstance()`), общий registry tools/resources, свой lifecycle.
 
-## 3) Ошибки и коды: JSON-RPC часть и MCP-специфика
+### Имена tools
 
-Сервер возвращает ошибки в JSON-RPC формате:
+Только `snake_case` (`user_create`), не точки (`user.create`).
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "error": {
-    "code": -32602,
-    "message": "Invalid parameters",
-    "data": {
-      "validation_errors": [
-        { "property": "email", "message": "..." }
-      ]
-    }
-  }
-}
-```
+### Auth
 
-Используемые коды:
-- **`-32700`**: Parse error — если входная строка не парсится как JSON.
-- **`-32603`**: Internal error — для непредвиденных исключений при обработке запроса.
-- **`-32602`**: Invalid parameters — используется для ошибок валидации команды.
+В JSON-RPC **нет** `params.auth`.  
+HTTP: опционально `Authorization: Bearer` на транспортном уровне.
 
-Отдельно:
-- если вызвана команда, которой нет, сервер выбрасывает `RuntimeException("Method not found: ...")`.
-  - В stdio-цикле `run()` это попадает в `Internal error (-32603)`.
-  - В unit-тестах, где `handleRequest` вызывается напрямую через reflection, это проявляется как исключение.
+### Запрет кастома
 
-## 4) Валидация параметров команд (JSON Schema)
-
-Команды наследуются от `BaseCommand` и получают стандартный пайплайн:
-1. `execute($params)`
-2. `validateInput($params)` — через `JsonSchemaValidator::validate(...)`
-3. `doExecute($params)`
-
-Особенности текущего валидатора:
-- поддерживаются базовые проверки `type`, `required`, `enum`, `minimum/maximum`, `minLength/maxLength`, `pattern`, `items`, вложенные `properties`;
-- `additionalProperties: false` запрещает лишние ключи в объекте.
-
-Нюанс: `pattern` в JSON Schema трактуется как regex **без** якорей, но валидатор оборачивает его в `#^(?: ... )$#u`, то есть проверка идёт на **полное совпадение** строки.
-
-## 5) Stdio-протокол: переводы строк и буферизация
-
-Сервер читает вход через `fgets(STDIN)` и ожидает перевод строки.
-
-Практические следствия:
-- если клиент не отправил `\\n`, сервер может «висеть» в ожидании завершения строки;
-- клиент `MCPClient` в этой реализации ждёт перевод строки в ответе, иначе будет ждать до таймаута;
-- клиент читает stdout в неблокирующем режиме и делает небольшой `usleep(10000)` в цикле ожидания.
-
-## 6) Ресурсы: точное совпадение URI и `matchesUri`
-
-Ресурсы регистрируются по `getUri()` как ключ:
-- сначала сервер пытается найти ресурс по **точному совпадению** `uri`;
-- если точного совпадения нет, сервер перебирает ресурсы и вызывает `matchesUri($uri)`.
-
-Это позволяет иметь ресурсы «по паттерну», например:
-- `getUri()` возвращает `file://logs/*`
-- `matchesUri()` сопоставляет конкретные `file://logs/anything.txt`
-- `getContent($requestedUri)` получает **конкретный** URI запроса и может выдать контент именно для него.
-
-## 7) HTTP-гейтвей: как HTTP превращается в MCP
-
-В проекте есть два варианта HTTP-гейтвея:
-- `MCPHttpServer` — синхронный, запускает встроенный PHP-сервер
-- `MCPHttpServerAmp` — асинхронный на Amp
-
-Оба варианта:
-- принимают HTTP запрос;
-- создают `MCPClient`, который запускает `bin/mcp_server.php` как дочерний процесс;
-- проксируют запросы к MCP через stdio.
-
-Маршруты (общая идея):
-- `GET /api/commands` → `mcp.listCommands`
-- `GET /api/resources` → `mcp.listResources`
-- `POST /api/execute` → вызвать команду из JSON тела (`{ "command": "...", "params": {...} }`)
-
-Нюанс авторизации в HTTP:
-- если `params.auth` не передали, гейтвей добавляет свой `$authKey`;
-- дальше всё работает так же, как при прямом stdio.
-
-## 8) Где смотреть реализацию
-
-- Сервер stdio: `quanzo\mcp\classes\Server` (`src/classes/Server.php`)
-- Базовая команда + валидация: `src/classes/commands/BaseCommand.php`, `src/classes/validation/JsonSchemaValidator.php`
-- Ресурсы: `src/interfaces/ResourceInterface.php`, `src/classes/resources/*`
-- Клиент stdio: `quanzo\mcp\classes\client\MCPClient` (`src/classes/client/MCPClient.php`)
-- HTTP-гейтвеи: `quanzo\mcp\classes\MCPHttpServer`, `quanzo\mcp\classes\MCPHttpServerAmp`
-  (`src/classes/MCPHttpServer.php`, `src/classes/MCPHttpServerAmp.php`)
-
+Не использовать и не документировать как MCP: `mcp.*` методы, REST `/api/commands`, `/api/execute`.

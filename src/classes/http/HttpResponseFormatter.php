@@ -3,9 +3,9 @@
 namespace quanzo\mcp\classes\http;
 
 /**
- * Форматтер HTTP-ответов для MCP HTTP API
+ * Форматтер HTTP-ответов
  *
- * Единообразное формирование JSON-ответов (success/error) для MCPHttpServer и MCPHttpServerAmp.
+ * Единообразное формирование JSON-ответов (success/error) для вспомогательных HTTP-эндпоинтов.
  */
 class HttpResponseFormatter
 {

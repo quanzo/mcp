@@ -1,25 +1,25 @@
 ## Команды (tools)
 
-Команда — это класс, реализующий `quanzo\mcp\interfaces\CommandInterface`.
+Команда — `quanzo\mcp\interfaces\CommandInterface`, обычно через `BaseCommand`.
 
-Обычно команды наследуются от `quanzo\mcp\classes\commands\BaseCommand`, который даёт стандартный пайплайн:
-- `execute($params)` → `validateInput($params)` → `doExecute($params)`
+Вызов из протокола: `tools/call` с `{ "name": "...", "arguments": { ... } }`.
 
-### JSON Schema валидация
+### Регистрация
 
-Валидация выполняется через `quanzo\mcp\classes\validation\JsonSchemaValidator`.
-
-Нюансы:
-- `additionalProperties: false` запрещает любые лишние ключи.
-- `pattern` интерпретируется как “полное совпадение” (валидатор оборачивает regex якорями).
-
-### Добавить свою команду
-
-1) Создайте класс в `src/classes/commands/` с неймспейсом `quanzo\mcp\classes\commands`.
-
-2) Зарегистрируйте команду в `bin/mcp_server.php` через:
+Демо-tools регистрируются в `McpServerFactory::createDefault()`.  
+Свои:
 
 ```php
 $server->registerCommand(new YourCommand());
 ```
 
+Имя tool — стабильный `snake_case` (`user_create`, не `user.create`).
+
+### Валидация
+
+`JsonSchemaValidator` + `getInputSchema()`.  
+`additionalProperties: false` запрещает лишние ключи.  
+`pattern` — полное совпадение строки.
+
+Ошибка схемы → JSON-RPC `-32602`.  
+Runtime внутри `doExecute` → `isError: true` в result.

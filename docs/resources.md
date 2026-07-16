@@ -1,19 +1,32 @@
 ## Ресурсы
 
-Ресурс — это объект, реализующий `quanzo\mcp\interfaces\ResourceInterface`.
+Ресурс — `quanzo\mcp\interfaces\ResourceInterface`.
 
-Сервер (`quanzo\mcp\classes\Server`) ищет ресурс так:
-1) точное совпадение `uri` с тем, что вернул `ResourceInterface::getUri()`
-2) если не найдено — перебор ресурсов и проверка `ResourceInterface::matchesUri($requestedUri)`
+Протокол:
 
-### Паттерн-ресурсы
+- `resources/list` → `{uri, name, mimeType?, description?}`
+- `resources/read` → `{contents:[{uri, mimeType, text}]}`
 
-`quanzo\mcp\classes\resources\FileResource` поддерживает паттерны (например `file://logs/*`):
-- `getUri()` возвращает паттерн
-- `matchesUri()` проверяет конкретный URI на соответствие паттерну
-- `getContent($requestedUri)` получает конкретный URI и может выбрать конкретный файл
+### Обязательные методы
 
-### Нюанс `getContent($requestedUri)`
+- `getUri()`, `getName()`, `getDescription()`, `getMimeType()`
+- `getContent(?string $requestedUri)`
+- `matchesUri(string $uri)` — для паттернов
+- `getMetadata()` — внутренние данные (не в wire MCP)
 
-Если ресурс паттерн-ориентированный, важно использовать именно `$requestedUri`, а не “базовый” `getUri()`.
+Демо-ресурсы регистрируются в `McpServerFactory`.
 
+### FileResource
+
+```php
+new FileResource(
+    'file://logs/mcp-server.log',
+    'text/plain',
+    $projectRoot . '/logs',
+    'mcp_server_log',
+    'Лог-файл'
+);
+```
+
+Паттерн `*` в URI поддерживается через `matchesUri()`.  
+Отсутствие файла → исключение на уровне ресурса; через `McpServer` это становится JSON-RPC `-32603` (без падения процесса).

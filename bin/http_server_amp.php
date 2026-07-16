@@ -1,58 +1,99 @@
 <?php
 
+/**
+ * Streamable HTTP MCP server (Amp)
+ *
+ * Тот же контракт /mcp, что и bin/http_server.php.
+ *
+ * Пример:
+ *   php bin/http_server_amp.php 127.0.0.1 8080
+ */
+
 $projectRoot = dirname(__DIR__);
 
 require_once $projectRoot . '/vendor/autoload.php';
 
-use quanzo\mcp\classes\MCPHttpServerAmp;
+use Amp\Http\Server\DefaultErrorHandler;
+use Amp\Http\Server\Request;
+use Amp\Http\Server\RequestHandler\ClosureRequestHandler;
+use Amp\Http\Server\Response;
+use Amp\Http\Server\SocketHttpServer;
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+use quanzo\mcp\classes\McpServerFactory;
+use quanzo\mcp\classes\log\FileLogger;
+use quanzo\mcp\classes\transport\StreamableHttpTransport;
+use Revolt\EventLoop;
 
-// Обработка аргументов командной строки
-if (php_sapi_name() === 'cli') {
-    $host = '0.0.0.0';
-    $port = 8080;
-    $authKey = 'default-secret-key-123';
-
-    // Парсим аргументы командной строки
-    if (isset($argv[1]) && !is_numeric($argv[1])) {
-        $host = $argv[1];
-    }
-
-    if (isset($argv[2]) && is_numeric($argv[2])) {
-        $port = (int) $argv[2];
-    }
-
-    if (isset($argv[3])) {
-        $authKey = $argv[3];
-    }
-
-    // Проверяем порт
-    if ($port < 1 || $port > 65535) {
-        echo "Ошибка: Порт должен быть в диапазоне 1-65535\n";
-        exit(1);
-    }
-
-    try {
-        $server = new MCPHttpServerAmp(
-            $projectRoot . '/bin/mcp_server.php',
-            $projectRoot . '/src/templates',
-            $host,
-            $port,
-            $authKey
-        );
-        $server->run();
-    } catch (\Throwable $e) {
-        echo "Ошибка запуска сервера: " . $e->getMessage() . "\n";
-        echo "Файл: " . $e->getFile() . ":" . $e->getLine() . "\n";
-        echo "Трассировка: " . $e->getTraceAsString() . "\n";
-        exit(1);
-    }
-} else {
-    echo "Этот скрипт должен быть запущен из командной строки\n";
-    echo "Использование: php http_server_amp.php [хост] [порт] [ключ]\n";
-    echo "Примеры:\n";
-    echo "  php http_server_amp.php\n";
-    echo "  php http_server_amp.php 0.0.0.0 8080\n";
-    echo "  php http_server_amp.php 127.0.0.1 9005 my-secret-key\n";
+if (php_sapi_name() !== 'cli') {
+    echo "Запускайте из CLI: php http_server_amp.php [host] [port]\n";
     exit(1);
 }
 
+$host = $argv[1] ?? '127.0.0.1';
+$port = isset($argv[2]) && is_numeric($argv[2]) ? (int) $argv[2] : 8080;
+
+if ($port < 1 || $port > 65535) {
+    fwrite(STDERR, "Ошибка: Порт должен быть в диапазоне 1-65535\n");
+    exit(1);
+}
+
+foreach (['logs', 'config', 'data'] as $dir) {
+    $path = $projectRoot . '/' . $dir;
+    if (!is_dir($path)) {
+        mkdir($path, 0755, true);
+    }
+}
+
+$fileLogger = new FileLogger($projectRoot . '/logs/mcp-http-amp.log', \Psr\Log\LogLevel::INFO);
+$bearer = getenv('MCP_HTTP_BEARER') ?: null;
+if ($bearer === '') {
+    $bearer = null;
+}
+$originsEnv = getenv('MCP_ALLOWED_ORIGINS') ?: '';
+$origins = $originsEnv !== '' ? array_values(array_filter(array_map('trim', explode(',', $originsEnv)))) : [];
+
+$mcpServer = McpServerFactory::createDefault($projectRoot, $fileLogger);
+$transport = new StreamableHttpTransport($mcpServer, $bearer, $origins);
+
+$log = new Logger('mcp-http-amp');
+$log->pushHandler(new StreamHandler('php://stdout', Logger::INFO));
+
+$server = SocketHttpServer::createForDirectAccess(
+    $log,
+    true,
+    1000,
+    10,
+    1000,
+    ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD']
+);
+$server->expose("{$host}:{$port}");
+
+$errorHandler = new DefaultErrorHandler();
+
+$requestHandler = new ClosureRequestHandler(static function (Request $request) use ($transport): Response {
+    $headers = [];
+    foreach ($request->getHeaders() as $name => $values) {
+        $headers[strtolower($name)] = $values[0] ?? '';
+    }
+
+    $body = $request->getBody()->buffer();
+    $result = $transport->handleHttpRequest(
+        $request->getMethod(),
+        $request->getUri()->getPath(),
+        $headers,
+        $body
+    );
+
+    return new Response(
+        $result->getStatusCode(),
+        $result->getHeaders(),
+        $result->getBody()
+    );
+});
+
+$server->start($requestHandler, $errorHandler);
+
+echo "MCP Streamable HTTP (Amp) on http://{$host}:{$port}/mcp\n";
+
+EventLoop::run();

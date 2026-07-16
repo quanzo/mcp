@@ -1,30 +1,36 @@
 ## Обзор
 
-`quanzo/mcp` — реализация MCP-сервера на PHP, который общается с клиентом поверх **JSON-RPC 2.0**.
+`quanzo/mcp` — **стандартная** реализация Model Context Protocol на PHP.
 
-В этом репозитории есть два способа доступа:
-- **stdio MCP server**: процесс читает запросы из `STDIN` и пишет ответы в `STDOUT` (одна строка = один JSON).
-- **HTTP gateway**: принимает HTTP-запросы и проксирует их в stdio через запуск `bin/mcp_server.php` как дочернего процесса.
+Слои:
+
+1. **Протокол** — `quanzo\mcp\classes\McpServer` (JSON-RPC MCP: initialize, tools/*, resources/*, ping)
+2. **Транспорты**:
+   - **stdio** — `StdioTransport` (`bin/mcp_server.php`)
+   - **Streamable HTTP** — `StreamableHttpTransport` (`bin/http_server.php`, `bin/http_server_amp.php`)
+
+Кастомных методов (`mcp.listCommands`, REST `/api/execute`) **нет и не будет**.
 
 ### Компоненты
 
-- **Сервер**: `quanzo\mcp\classes\Server` (`src/classes/Server.php`)
-- **Команды (tools)**: `quanzo\mcp\classes\commands\*` (`src/classes/commands/`)
-- **Ресурсы**: `quanzo\mcp\classes\resources\*` (`src/classes/resources/`)
-- **Клиент stdio**: `quanzo\mcp\classes\client\MCPClient` (`src/classes/client/MCPClient.php`)
-- **HTTP gateway (sync)**: `quanzo\mcp\classes\MCPHttpServer` (`src/classes/MCPHttpServer.php`)
-- **HTTP gateway (Amp)**: `quanzo\mcp\classes\MCPHttpServerAmp` (`src/classes/MCPHttpServerAmp.php`)
-- **JSON helper**: `quanzo\mcp\helpers\JsonHelper` (`src/helpers/JsonHelper.php`)
-- **Template renderer**: `quanzo\mcp\helpers\TemplateRenderer` (`src/helpers/TemplateRenderer.php`)
-- **Шаблоны**: `src/templates/`
+| Класс / путь | Роль |
+|---|---|
+| `McpServer` | Протокольное ядро |
+| `McpServerFactory` | Сборка демо-сервера с tools/resources |
+| `StdioTransport` | newline JSON STDIN/STDOUT |
+| `StreamableHttpTransport` | POST/GET/DELETE `/mcp` |
+| `McpSessionStore` | HTTP-сессии (`Mcp-Session-Id`) |
+| `MCPClient` | stdio-клиент для тестов |
+| `src/classes/commands/*` | Tools |
+| `src/classes/resources/*` | Resources |
+| `src/classes/dto/mcp/*` | DTO wire-формата |
 
-### Куда смотреть дальше
+### Куда смотреть
 
 - Быстрый старт: `docs/quickstart.md`
-- Разработка и проверки: `docs/development.md`
-- Протокол MCP/JSON-RPC: `docs/mcp-protocol.md`
-- HTTP gateway: `docs/http-gateway.md`
+- Протокол + таблица ошибок: `docs/mcp-protocol.md`
+- Streamable HTTP: `docs/streamable-http.md`
 - Команды: `docs/commands.md`
 - Ресурсы: `docs/resources.md`
-- Глубокие нюансы/edge cases: `docs/mcp-nuances.md`
-
+- Нюансы (`isError`, sessions): `docs/mcp-nuances.md`
+- Разработка / resilience / phpdoc: `docs/development.md`

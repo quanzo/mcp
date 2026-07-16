@@ -9,12 +9,20 @@ namespace quanzo\mcp\classes\commands;
  */
 class MyCustomCommand extends BaseCommand
 {
+    /**
+     * Конструктор MyCustomCommand
+     */
     public function __construct()
     {
-        $this->name = 'my.command';
+        $this->name = 'my_command';
         $this->description = 'Моя пользовательская команда';
     }
 
+    /**
+     * Возвращает схему входных параметров
+     *
+     * @return array<string, mixed>
+     */
     public function getInputSchema(): array
     {
         return [
@@ -29,9 +37,15 @@ class MyCustomCommand extends BaseCommand
         ];
     }
 
+    /**
+     * Выполняет логику команды
+     *
+     * @param array<string, mixed> $params Входные параметры
+     *
+     * @return array<string, mixed>
+     */
     protected function doExecute(array $params): array
     {
-        // Логика команды
         return [
             'result' => 'Команда выполнена',
             'param' => $params['param1']

@@ -67,4 +67,26 @@ class EchoCommandTest extends TestCase
         self::assertSame($longMessage, $result['result']);
         self::assertSame(10_000, $result['length']);
     }
+
+    /**
+     * Тест resilience: отсутствует message → ValidationException
+     *
+     * @return void
+     */
+    public function testMissingMessageTriggersValidationError(): void
+    {
+        $this->expectException(\quanzo\mcp\classes\validation\ValidationException::class);
+        (new EchoCommand())->execute([]);
+    }
+
+    /**
+     * Тест resilience: message не string → ValidationException
+     *
+     * @return void
+     */
+    public function testNonStringMessageTriggersValidationError(): void
+    {
+        $this->expectException(\quanzo\mcp\classes\validation\ValidationException::class);
+        (new EchoCommand())->execute(['message' => 123]);
+    }
 }

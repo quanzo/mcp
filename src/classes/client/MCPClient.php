@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace quanzo\mcp\classes\client;
 
 use Psr\Log\LoggerInterface;
@@ -8,8 +10,12 @@ use quanzo\mcp\helpers\JsonHelper;
 /**
  * Класс MCPClient
  *
- * Обеспечивает взаимодействие с MCP сервером через stdio.
- * Позволяет отправлять запросы и получать ответы от сервера.
+ * Клиент стандартного MCP поверх stdio: initialize → tools/list|call, resources/*.
+ *
+ * Пример использования:
+ *   $client = new MCPClient(__DIR__ . '/../../bin/mcp_server.php');
+ *   $tools = $client->listTools();
+ *   $result = $client->callTool('echo', ['message' => 'hi']);
  */
 class MCPClient
 {
@@ -21,98 +27,144 @@ class MCPClient
     private $process;
 
     /**
-     * Каналы общения с дочерним процессом (stdin, stdout, stderr)
+     * Каналы общения с дочерним процессом
      *
      * @var array<int, resource>
      */
     private array $pipes = [];
 
     /**
-     * Ключ авторизации
-     */
-    private string $authKey;
-
-    /**
-     * Счетчик идентификаторов запросов
+     * Счётчик идентификаторов запросов
+     *
+     * @var int
      */
     private int $requestId = 1;
 
     /**
-     * Логгер (если null — вывод в консоль не выполняется)
+     * Логгер
+     *
+     * @var LoggerInterface|null
      */
     private ?LoggerInterface $logger;
+
+    /**
+     * Флаг успешного initialize
+     *
+     * @var bool
+     */
+    private bool $initialized = false;
 
     /**
      * Конструктор MCPClient
      *
      * @param string $serverScript Путь к скрипту сервера
-     * @param string $authKey Ключ авторизации
-     * @param LoggerInterface|null $logger Логгер для вывода (при null логи не пишутся)
+     * @param LoggerInterface|null $logger Логгер
+     * @param bool $autoInitialize Выполнить handshake сразу
      *
      * @throws \RuntimeException Если не удалось запустить MCP сервер
      */
     public function __construct(
         string $serverScript,
-        string $authKey = 'default-secret-key-123',
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
+        bool $autoInitialize = true
     ) {
-        $this->authKey = $authKey;
         $this->logger = $logger;
 
-        // Команда для запуска сервера
-        $command = "php " . escapeshellarg($serverScript);
-
-        // Дескрипторы для общения с дочерним процессом
+        $command = 'php ' . escapeshellarg($serverScript);
         $descriptors = [
-            0 => ["pipe", "r"],  // stdin
-            1 => ["pipe", "w"],  // stdout
-            2 => ["pipe", "w"]   // stderr
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
         ];
 
-        // Запускаем сервер как дочерний процесс
         $this->process = proc_open($command, $descriptors, $this->pipes);
 
         if (!is_resource($this->process)) {
-            throw new \RuntimeException("Не удалось запустить MCP сервер");
+            throw new \RuntimeException('Не удалось запустить MCP сервер');
         }
 
-        // Устанавливаем неблокирующий режим для чтения
         stream_set_blocking($this->pipes[1], false);
         stream_set_blocking($this->pipes[2], false);
 
         if ($this->logger !== null) {
-            $this->logger->info('MCP сервер запущен', ['pid' => proc_get_status($this->process)['pid']]);
+            $status = proc_get_status($this->process);
+            $this->logger->info('MCP сервер запущен', ['pid' => $status['pid'] ?? null]);
+        }
+
+        if ($autoInitialize) {
+            $this->initialize();
         }
     }
 
     /**
-     * Отправляет запрос на сервер
+     * Выполняет handshake initialize + notifications/initialized
      *
-     * @param string $method Метод/команда
-     * @param array $params Параметры запроса
-     * @param int|null $id Идентификатор запроса
+     * @param string $protocolVersion Запрашиваемая версия протокола
      *
-     * @return array Ответ сервера
+     * @return array<string, mixed> Результат initialize
+     */
+    public function initialize(string $protocolVersion = '2025-03-26'): array
+    {
+        $result = $this->sendRequest('initialize', [
+            'protocolVersion' => $protocolVersion,
+            'capabilities' => new \stdClass(),
+            'clientInfo' => [
+                'name' => 'quanzo-mcp-client',
+                'version' => '1.0.0',
+            ],
+        ]);
+
+        $this->sendNotification('notifications/initialized');
+        $this->initialized = true;
+
+        return $result;
+    }
+
+    /**
+     * Отправляет JSON-RPC notification (без ожидания ответа)
      *
-     * @throws \RuntimeException Если произошел таймаут или некорректный ответ
+     * @param string $method Метод
+     * @param array<string, mixed> $params Параметры
+     *
+     * @return void
+     */
+    public function sendNotification(string $method, array $params = []): void
+    {
+        $request = [
+            'jsonrpc' => '2.0',
+            'method' => $method,
+        ];
+        if ($params !== []) {
+            $request['params'] = $params;
+        }
+
+        fwrite($this->pipes[0], JsonHelper::encode($request) . "\n");
+        fflush($this->pipes[0]);
+    }
+
+    /**
+     * Отправляет JSON-RPC запрос и ждёт ответ
+     *
+     * @param string $method Метод
+     * @param array<string, mixed> $params Параметры
+     * @param int|null $id Идентификатор
+     *
+     * @return array<string, mixed> Поле result
+     *
+     * @throws \RuntimeException При ошибке или таймауте
      */
     public function sendRequest(string $method, array $params = [], ?int $id = null): array
     {
         $id = $id ?? $this->requestId++;
 
-        // Добавляем ключ авторизации к параметрам
-        $params['auth'] = $this->authKey;
-
         $request = [
             'jsonrpc' => '2.0',
             'id' => $id,
             'method' => $method,
-            'params' => $params
+            'params' => $params === [] ? new \stdClass() : $params,
         ];
 
         $jsonRequest = JsonHelper::encode($request) . "\n";
-
-        // Записываем запрос в stdin сервера
         fwrite($this->pipes[0], $jsonRequest);
         fflush($this->pipes[0]);
 
@@ -120,120 +172,102 @@ class MCPClient
             $this->logger->info('Отправлен запрос', ['id' => $id, 'method' => $method]);
         }
 
-        // Читаем ответ из stdout сервера
-        $response = '';
-        $startTime = microtime(true);
-        $timeout = 5; // секунд
-
-        while (true) {
-            $line = fgets($this->pipes[1]);
-
-            if ($line !== false) {
-                $response .= $line;
-                if (strpos($line, "\n") !== false) {
-                    break;
-                }
-            }
-
-            // Проверка таймаута
-            if (microtime(true) - $startTime > $timeout) {
-                throw new \RuntimeException("Таймаут ожидания ответа от сервера");
-            }
-
-            usleep(10000); // 10ms пауза
-        }
-
-        // Читаем ошибки из stderr
-        $errors = stream_get_contents($this->pipes[2]);
-        if (!empty($errors) && $this->logger !== null) {
-            $this->logger->warning('Stderr сервера', ['stderr' => $errors]);
-        }
-
-        /** @var array $decodedResponse */
-        $decodedResponse = JsonHelper::decode($response, true);
-
-        return $decodedResponse;
-    }
-
-    /**
-     * Получает список доступных команд
-     *
-     * @return array Список команд
-     *
-     * @throws \RuntimeException Если произошла ошибка при получении списка команд
-     */
-    public function listCommands(): array
-    {
-        $response = $this->sendRequest('mcp.listCommands', []);
+        $response = $this->readResponse($id);
 
         if (isset($response['error'])) {
-            throw new \RuntimeException("Ошибка при получении списка команд: " .
-                json_encode($response['error']));
+            $message = $response['error']['message'] ?? 'Unknown error';
+            throw new \RuntimeException('MCP error: ' . $message);
         }
 
-        return $response['result']['commands'] ?? [];
+        /** @var array<string, mixed> $result */
+        $result = $response['result'] ?? [];
+
+        return is_array($result) ? $result : [];
     }
 
     /**
-     * Получает список доступных ресурсов
+     * Возвращает список инструментов
      *
-     * @return array Список ресурсов
+     * @return list<array<string, mixed>>
+     */
+    public function listTools(): array
+    {
+        $result = $this->sendRequest('tools/list');
+        $tools = $result['tools'] ?? [];
+
+        return is_array($tools) ? array_values($tools) : [];
+    }
+
+    /**
+     * Вызывает инструмент
      *
-     * @throws \RuntimeException Если произошла ошибка при получении списка ресурсов
+     * @param string $name Имя инструмента
+     * @param array<string, mixed> $arguments Аргументы
+     *
+     * @return array<string, mixed> CallToolResult
+     */
+    public function callTool(string $name, array $arguments = []): array
+    {
+        return $this->sendRequest('tools/call', [
+            'name' => $name,
+            'arguments' => $arguments,
+        ]);
+    }
+
+    /**
+     * Возвращает список ресурсов
+     *
+     * @return list<array<string, mixed>>
      */
     public function listResources(): array
     {
-        $response = $this->sendRequest('mcp.listResources', []);
+        $result = $this->sendRequest('resources/list');
+        $resources = $result['resources'] ?? [];
 
-        if (isset($response['error'])) {
-            throw new \RuntimeException("Ошибка при получении списка ресурсов: " .
-                json_encode($response['error']));
-        }
-
-        return $response['result']['resources'] ?? [];
+        return is_array($resources) ? array_values($resources) : [];
     }
 
     /**
-     * Читает содержимое ресурса
+     * Читает ресурс по URI
      *
      * @param string $uri URI ресурса
      *
-     * @return string Содержимое ресурса
-     *
-     * @throws \RuntimeException Если произошла ошибка при чтении ресурса
+     * @return array<string, mixed> ReadResourceResult
      */
-    public function readResource(string $uri): string
+    public function readResource(string $uri): array
     {
-        $response = $this->sendRequest('mcp.readResource', ['uri' => $uri]);
-
-        if (isset($response['error'])) {
-            throw new \RuntimeException("Ошибка при чтении ресурса: " .
-                json_encode($response['error']));
-        }
-
-        return $response['result']['content'] ?? '';
+        return $this->sendRequest('resources/read', ['uri' => $uri]);
     }
 
     /**
-     * Закрывает соединение с сервером
+     * Отправляет ping
+     *
+     * @return array<string, mixed>
+     */
+    public function ping(): array
+    {
+        return $this->sendRequest('ping');
+    }
+
+    /**
+     * Закрывает соединение
+     *
+     * @return void
      */
     public function close(): void
     {
+        if (isset($this->pipes[0]) && is_resource($this->pipes[0])) {
+            fclose($this->pipes[0]);
+        }
+        if (isset($this->pipes[1]) && is_resource($this->pipes[1])) {
+            fclose($this->pipes[1]);
+        }
+        if (isset($this->pipes[2]) && is_resource($this->pipes[2])) {
+            fclose($this->pipes[2]);
+        }
         if (is_resource($this->process)) {
-            // Закрываем каналы
-            foreach ($this->pipes as $pipe) {
-                if (is_resource($pipe)) {
-                    fclose($pipe);
-                }
-            }
-
-            // Завершаем процесс
             proc_terminate($this->process);
             proc_close($this->process);
-        }
-
-        if ($this->logger !== null) {
-            $this->logger->info('Соединение с MCP сервером закрыто');
         }
     }
 
@@ -243,5 +277,47 @@ class MCPClient
     public function __destruct()
     {
         $this->close();
+    }
+
+    /**
+     * Читает ответ с ожидаемым id
+     *
+     * @param int $expectedId Ожидаемый id
+     *
+     * @return array<string, mixed>
+     *
+     * @throws \RuntimeException
+     */
+    private function readResponse(int $expectedId): array
+    {
+        $buffer = '';
+        $start = microtime(true);
+        $timeout = 5.0;
+
+        while ((microtime(true) - $start) < $timeout) {
+            $chunk = fread($this->pipes[1], 8192);
+            if ($chunk !== false && $chunk !== '') {
+                $buffer .= $chunk;
+                if (str_contains($buffer, "\n")) {
+                    $line = strtok($buffer, "\n");
+                    if ($line !== false && $line !== '') {
+                        /** @var array<string, mixed> $decoded */
+                        $decoded = JsonHelper::decode($line, true);
+                        if (($decoded['id'] ?? null) === $expectedId) {
+                            return $decoded;
+                        }
+                    }
+                }
+            }
+
+            $err = fread($this->pipes[2], 8192);
+            if ($err !== false && $err !== '' && $this->logger !== null) {
+                $this->logger->debug('stderr', ['data' => $err]);
+            }
+
+            usleep(10000);
+        }
+
+        throw new \RuntimeException('Timeout waiting for MCP response');
     }
 }

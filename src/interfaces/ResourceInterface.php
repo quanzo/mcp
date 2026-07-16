@@ -7,7 +7,7 @@ namespace quanzo\mcp\interfaces;
  *
  * Определяет контракт для ресурсов MCP сервера.
  * Ресурсы представляют собой статические или динамически генерируемые данные,
- * доступные для чтения через MCP протокол.
+ * доступные для чтения через MCP протокол (resources/list, resources/read).
  */
 interface ResourceInterface
 {
@@ -17,6 +17,20 @@ interface ResourceInterface
      * @return string URI ресурса
      */
     public function getUri(): string;
+
+    /**
+     * Возвращает человекочитаемое имя ресурса
+     *
+     * @return string Имя ресурса
+     */
+    public function getName(): string;
+
+    /**
+     * Возвращает описание ресурса
+     *
+     * @return string|null Описание или null
+     */
+    public function getDescription(): ?string;
 
     /**
      * Возвращает MIME-тип содержимого ресурса
@@ -37,7 +51,7 @@ interface ResourceInterface
     public function getContent(?string $requestedUri = null): string;
 
     /**
-     * Возвращает метаданные ресурса
+     * Возвращает метаданные ресурса (внутренние, не часть wire-формата MCP)
      *
      * @return array Ассоциативный массив метаданных ресурса
      */

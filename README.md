@@ -1,363 +1,124 @@
-# MCP (Model Context Protocol) Сервер на PHP
+# MCP (Model Context Protocol) — PHP
 
-Полнофункциональная реализация MCP сервера на PHP 8.1, поддерживающая команды, ресурсы, авторизацию и валидацию входных данных.
+Стандартная реализация MCP-сервера на PHP 8.1+: JSON-RPC протокол + транспорты **stdio** и **Streamable HTTP**.
+
+Совместимо с Cursor, Claude Code, Codex и другими MCP-клиентами.
 
 ## Возможности
 
-- ✅ Поддержка команд (tools) через JSON-RPC 2.0
-- ✅ Поддержка ресурсов (resources) для чтения статических данных
-- ✅ Валидация входных параметров по JSON Schema
-- ✅ Авторизация с помощью ключа
-- ✅ PSR-совместимое логирование в файл
-- ✅ Работа через stdio (стандартные потоки ввода/вывода)
-- ✅ Веб-интерфейс для тестирования и управления
-- ✅ Готовые примеры команд и ресурсов
+- Lifecycle: `initialize` / `notifications/initialized` / `ping`
+- Tools: `tools/list`, `tools/call`
+- Resources: `resources/list`, `resources/read`
+- Валидация аргументов по JSON Schema
+- Stdio (newline-delimited JSON)
+- Streamable HTTP (единый endpoint `/mcp`)
+- PSR-логирование в файл (не в STDOUT)
+- Устойчивость к неверному вводу (JSON-RPC error / `isError`, без падения)
 
 ## Требования
 
-- PHP 8.1 или выше
-- Composer для управления зависимостями
+- PHP 8.1+
+- Composer
 
 ## Установка
 
-1. Клонируйте репозиторий:
-```bash
-git clone <repository-url>
-cd mcp-server
-```
-
-2. Установите зависимости:
-
 ```bash
 composer install
-```
-
-3. Создайте необходимые директории:
-
-```bash
 mkdir -p logs config data
 ```
 
-4. Настройте переменные окружения (опционально):
+## Stdio (агенты)
 
 ```bash
-export MCP_AUTH_KEY="your-secret-key-here"
-```
-
-## Структура проекта
-
-```
-bin/
-├── mcp_server.php                # Точка входа MCP сервера (stdio)
-├── http_server.php               # HTTP гейтвей (встроенный PHP сервер)
-├── http_server_amp.php           # HTTP гейтвей на Amp
-└── test_client.php               # CLI-клиент для демонстрации/тестирования
-
-src/
-├── classes/                      # Классы проекта
-│   ├── Server.php                # MCP сервер (stdio)
-│   ├── MCPHttpServer.php         # HTTP гейтвей (sync)
-│   ├── MCPHttpServerAmp.php      # HTTP гейтвей (Amp)
-│   ├── commands/                 # Команды (tools)
-│   ├── resources/                # Ресурсы
-│   ├── validation/               # Валидация JSON Schema
-│   ├── client/                   # MCPClient (stdio)
-│   ├── dto/                      # DTO для JSON-RPC
-│   ├── log/                      # Логирование
-│   └── http/                     # HTTP-утилиты
-├── interfaces/                   # Интерфейсы
-├── helpers/                      # Хелперы (при необходимости)
-├── traits/                       # Трейты (при необходимости)
-└── enums/                        # Enum'ы (при необходимости)
-
-docs/
-├── overview.md                   # Обзор и карта компонентов
-├── quickstart.md                 # Быстрый старт
-├── development.md                # Разработка и проверки
-├── mcp-protocol.md               # JSON-RPC/MCP протокол (stdio)
-├── http-gateway.md               # HTTP gateway (sync/Amp)
-├── commands.md                   # Команды (tools)
-├── resources.md                  # Ресурсы
-└── mcp-nuances.md                # Глубокие нюансы MCP в этой реализации
-
-tests/                            # Unit/Integration тесты
-```
-
-## Использование
-
-### Запуск сервера
-
-```bash
-# Прямой запуск
 php bin/mcp_server.php
-
-# С указанием ключа авторизации
-MCP_AUTH_KEY="my-key" php bin/mcp_server.php
 ```
 
-### Тестирование с помощью клиента
+Конфиг Cursor / Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "quanzo-mcp": {
+      "command": "php",
+      "args": ["/var/www/mcp/bin/mcp_server.php"]
+    }
+  }
+}
+```
+
+## Streamable HTTP
+
+```bash
+# По умолчанию 127.0.0.1:8080
+php bin/http_server.php
+
+# Amp-вариант
+php bin/http_server_amp.php 127.0.0.1 8080
+```
+
+Endpoint: `http://127.0.0.1:8080/mcp`
+
+Опционально:
+
+```bash
+MCP_HTTP_BEARER=token php bin/http_server.php -b token
+```
+
+Конфиг агента (HTTP):
+
+```json
+{
+  "mcpServers": {
+    "quanzo-mcp-http": {
+      "url": "http://127.0.0.1:8080/mcp"
+    }
+  }
+}
+```
+
+## Быстрая проверка
 
 ```bash
 php bin/test_client.php
 ```
 
-### Примеры запросов
+## Структура
 
-Получение списка команд:
-
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "mcp.listCommands",
-    "params": {
-        "auth": "your-secret-key"
-    }
-    
-}
 ```
+bin/
+├── mcp_server.php          # stdio MCP
+├── http_server.php         # Streamable HTTP (php -S)
+├── http_server_amp.php     # Streamable HTTP (Amp)
+└── test_client.php
 
-Выполнение команды echo:
+src/classes/
+├── McpServer.php           # протокольное ядро
+├── McpServerFactory.php
+├── transport/
+│   ├── StdioTransport.php
+│   ├── StreamableHttpTransport.php
+│   └── ...
+├── commands/               # tools
+├── resources/
+├── client/MCPClient.php
+└── dto/mcp/                # DTO ответов MCP
 
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "echo",
-    "params": {
-        "auth": "your-secret-key",
-        "message": "Hello World"
-    }
-}
-```
-
-Получение списка ресурсов:
-
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "mcp.listResources",
-    "params": {
-        "auth": "your-secret-key"
-    }
-}
-```
-
-Чтение ресурса:
-
-```json
-{
-    "jsonrpc": "2.0",
-    "id": 4,
-    "method": "mcp.readResource",
-    "params": {
-        "auth": "your-secret-key",
-        "uri": "file://logs/mcp-server.log"
-    }
-}
-```
-
-## Создание собственных команд
-
-1. Создайте новый класс в пространстве имен quanzo\mcp\classes\commands:
-
-```php
-namespace quanzo\mcp\classes\commands;
-
-use quanzo\mcp\classes\commands\BaseCommand;
-use quanzo\mcp\classes\validation\ValidationException;
-
-class MyCustomCommand extends BaseCommand
-{
-    public function __construct()
-    {
-        $this->name = 'my.command';
-        $this->description = 'Моя пользовательская команда';
-    }
-    
-    public function getInputSchema(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'param1' => [
-                    'type' => 'string',
-                    'description' => 'Параметр 1'
-                ]
-            ],
-            'required' => ['param1']
-        ];
-    }
-    
-    protected function doExecute(array $params): array
-    {
-        // Логика команды
-        return [
-            'result' => 'Команда выполнена',
-            'param' => $params['param1']
-        ];
-    }
-}
-```
-
-2. Зарегистрируйте команду в сервере:
-
-```php
-use quanzo\mcp\classes\commands\MyCustomCommand;
-
-$server->registerCommand(new MyCustomCommand());
-```
-
-## Создание собственных ресурсов
-
-Создайте новый класс ресурса:
-
-```php
-namespace quanzo\mcp\classes\resources;
-
-use quanzo\mcp\interfaces\ResourceInterface;
-
-class MyResource implements ResourceInterface
-{
-    public function getUri(): string
-    {
-        return 'myresource://data';
-    }
-    
-    public function getMimeType(): string
-    {
-        return 'application/json';
-    }
-    
-    public function getContent(): string
-    {
-        return json_encode(['data' => 'Пример данных']);
-    }
-    
-    public function getMetadata(): array
-    {
-        return ['type' => 'custom'];
-    }
-    
-    public function matchesUri(string $uri): bool
-    {
-        return $uri === $this->getUri();
-    }
-}
-```
-
-2. Зарегистрируйте ресурс в сервере:
-
-```php
-use quanzo\mcp\classes\resources\MyResource;
-
-$server->registerResource(new MyResource());
-```
-
-## Настройка логирования
-
-По умолчанию логи записываются в файл logs/mcp-server.log. Вы можете изменить уровень логирования:
-
-```php
-use quanzo\mcp\classes\log\FileLogger;
-
-$logger = new FileLogger(
-    __DIR__ . '/logs/mcp-server.log',
-    \Psr\Log\LogLevel::DEBUG // Уровень логирования
-);
-```
-
-Доступные уровни: DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY.
-
-## Авторизация
-
-Сервер поддерживает простую авторизацию по ключу. Ключ можно передать:
-
-Через переменную окружения MCP_AUTH_KEY
-
-Прямо в конструкторе сервера
-
-В каждом запросе в параметре auth
-
-```php
-use quanzo\mcp\classes\Server;
-
-$server = new Server('my-secret-key', $logger);
-```
-
-## Валидация
-
-Каждая команда должна определить схему входных параметров в формате JSON Schema. Сервер автоматически валидирует входные данные и возвращает детальные ошибки при несоответствии.
-
-## Пример интеграции
-
-### Использование в другом PHP проекте:
-
-```php
-require_once 'vendor/autoload.php';
-
-use quanzo\mcp\classes\Server;
-use quanzo\mcp\classes\log\FileLogger;
-
-// Настройка логгера
-$logger = new FileLogger('/var/log/mcp-server.log');
-
-// Создание сервера
-$server = new Server('your-secret-key', $logger);
-
-// Регистрация кастомных команд
-$server->registerCommand(new MyCustomCommand());
-
-// Запуск сервера (в отдельном процессе)
-$server->run();
-```
-
-## Использование через CLI:
-```bash
-# Запуск сервера в фоновом режиме
-nohup php bin/mcp_server.php > /dev/null 2>&1 &
-
-# Отправка запроса через curl (если реализован HTTP интерфейс)
-curl -X POST http://localhost:8000/api/mcp/execute -H "Content-Type: application/json" -d '{"command": "echo", "params": {"message": "Hello"}}'
-```
-
-## Класс MCPClient
-
-Для удобства тестирования и интеграции предоставлен класс MCPClient в пространстве имен quanzo\mcp\classes\client. Он позволяет взаимодействовать с сервером через stdio:
-
-```php
-use quanzo\mcp\classes\client\MCPClient;
-
-$client = new MCPClient(__DIR__ . '/bin/mcp_server.php', 'your-secret-key');
-
-// Получение списка команд
-$commands = $client->listCommands();
-
-// Выполнение команды
-$result = $client->sendRequest('echo', ['message' => 'Hello']);
-```
-# Запуск серверов
-
-```bash
-# Простая версия (встроенный PHP сервер)
-php bin/http_server.php -p 8080 -k my-secret-key
-```
-
-```bash
-# Amp версия (высокая производительность)
-php bin/http_server_amp.php 0.0.0.0 8080 my-secret-key
-```
-
-```bash
-# Запуск в фоновом режиме
-nohup php bin/http_server_amp.php 0.0.0.0 8080 > /var/log/mcp-http.log 2>&1 &
+docs/
+├── overview.md
+├── quickstart.md
+├── mcp-protocol.md
+├── streamable-http.md
+├── commands.md
+├── resources.md
+└── ...
 ```
 
 ## Документация
 
-Начните с `docs/overview.md` и `docs/quickstart.md`, затем:
-- протокол/stdio: `docs/mcp-protocol.md`
-- HTTP gateway: `docs/http-gateway.md`
-- команды/ресурсы: `docs/commands.md`, `docs/resources.md`
-- глубокие нюансы: `docs/mcp-nuances.md`
+- Обзор: `docs/overview.md`
+- Быстрый старт: `docs/quickstart.md`
+- Протокол: `docs/mcp-protocol.md`
+- HTTP: `docs/streamable-http.md`
+- Нюансы / ошибки: `docs/mcp-nuances.md`
+- Команды / ресурсы: `docs/commands.md`, `docs/resources.md`
+- Разработка: `docs/development.md`

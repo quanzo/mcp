@@ -79,4 +79,31 @@ class CalculateCommandTest extends TestCase
             'b' => 3,
         ]);
     }
+
+    /**
+     * Тест resilience: a/b не числа (массивы) → ValidationException
+     *
+     * @return void
+     */
+    public function testNonNumericOperandsTriggerValidationError(): void
+    {
+        $this->expectException(\quanzo\mcp\classes\validation\ValidationException::class);
+
+        (new CalculateCommand())->execute([
+            'operation' => 'add',
+            'a' => ['x'],
+            'b' => ['y'],
+        ]);
+    }
+
+    /**
+     * Тест resilience: отсутствуют обязательные поля → ValidationException
+     *
+     * @return void
+     */
+    public function testMissingFieldsTriggerValidationError(): void
+    {
+        $this->expectException(\quanzo\mcp\classes\validation\ValidationException::class);
+        (new CalculateCommand())->execute(['operation' => 'add']);
+    }
 }

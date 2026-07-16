@@ -10,19 +10,29 @@ use quanzo\mcp\classes\validation\ValidationException;
  * Абстрактный класс BaseCommand
  *
  * Предоставляет базовую реализацию интерфейса CommandInterface.
- * Упрощает создание новых команд, предоставляя стандартную реализацию
- * валидации и выполнения.
+ * Пайплайн: validateInput (JSON Schema) → doExecute.
+ *
+ * Пример использования:
+ *   class EchoCommand extends BaseCommand {
+ *       public function __construct() {
+ *           $this->name = 'echo';
+ *           $this->description = '...';
+ *       }
+ *       protected function doExecute(array $params): array { ... }
+ *   }
  */
 abstract class BaseCommand implements CommandInterface
 {
     /**
-     * Имя команды
+     * Имя команды (tool name в MCP)
+     *
      * @var string
      */
     protected string $name;
 
     /**
-     * Описание команды
+     * Описание команды для LLM
+     *
      * @var string
      */
     protected string $description;

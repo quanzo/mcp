@@ -7,10 +7,12 @@ namespace quanzo\mcp\helpers;
 /**
  * JsonHelper
  *
- * Централизует encode/decode JSON для всего проекта, чтобы:
- * - унифицировать флаги форматирования;
- * - получать ошибки парсинга/сериализации через исключения (`JSON_THROW_ON_ERROR`);
- * - избегать дублирования `json_encode/json_decode` по коду.
+ * Централизует encode/decode JSON для всего проекта:
+ * единые флаги, JSON_THROW_ON_ERROR, без дублирования.
+ *
+ * Пример использования:
+ *   $json = JsonHelper::encode($data);
+ *   $arr = JsonHelper::decode($json, true);
  */
 final class JsonHelper
 {

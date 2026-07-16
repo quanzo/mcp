@@ -14,21 +14,38 @@ class FileResource implements ResourceInterface
 {
     /**
      * Паттерн URI ресурса
+     *
      * @var string
      */
     private string $uriPattern;
 
     /**
      * MIME-тип содержимого
+     *
      * @var string
      */
     private string $mimeType;
 
     /**
      * Базовый путь к файлам
+     *
      * @var string
      */
     private string $basePath;
+
+    /**
+     * Человекочитаемое имя ресурса
+     *
+     * @var string
+     */
+    private string $name;
+
+    /**
+     * Описание ресурса
+     *
+     * @var string|null
+     */
+    private ?string $description;
 
     /**
      * Конструктор FileResource
@@ -36,12 +53,21 @@ class FileResource implements ResourceInterface
      * @param string $uriPattern Паттерн URI (например, 'file://logs/*')
      * @param string $mimeType MIME-тип содержимого
      * @param string $basePath Базовый путь к файлам
+     * @param string|null $name Имя ресурса (по умолчанию — URI)
+     * @param string|null $description Описание ресурса
      */
-    public function __construct(string $uriPattern, string $mimeType, string $basePath = '')
-    {
+    public function __construct(
+        string $uriPattern,
+        string $mimeType,
+        string $basePath = '',
+        ?string $name = null,
+        ?string $description = null
+    ) {
         $this->uriPattern = $uriPattern;
         $this->mimeType = $mimeType;
         $this->basePath = rtrim($basePath, '/');
+        $this->name = $name ?? $uriPattern;
+        $this->description = $description;
     }
 
     /**
@@ -52,6 +78,26 @@ class FileResource implements ResourceInterface
     public function getUri(): string
     {
         return $this->uriPattern;
+    }
+
+    /**
+     * Возвращает имя ресурса
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * Возвращает описание ресурса
+     *
+     * @return string|null
+     */
+    public function getDescription(): ?string
+    {
+        return $this->description;
     }
 
     /**

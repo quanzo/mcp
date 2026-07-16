@@ -9,27 +9,32 @@ use quanzo\mcp\helpers\JsonHelper;
 /**
  * Класс FileLogger
  *
- * Файловый логгер, реализующий PSR-3 LoggerInterface.
- * Предназначен для записи логов в файл с поддержкой различных уровней логирования.
- * Автоматически создает директорию для логов при необходимости.
+ * Файловый PSR-3 логгер. Для MCP stdio пишет в файл, не в STDOUT
+ * (иначе ломается JSON-RPC framing).
+ *
+ * Пример использования:
+ *   $logger = new FileLogger(__DIR__ . '/logs/mcp-server.log', LogLevel::INFO);
  */
 class FileLogger extends AbstractLogger
 {
     /**
      * Путь к файлу лога
+     *
      * @var string
      */
     private $logFile;
 
     /**
      * Минимальный уровень логирования
+     *
      * @var string
      */
     private $logLevel;
 
     /**
      * Карта приоритетов уровней логирования
-     * @var array
+     *
+     * @var array<string, int>
      */
     private const LEVEL_PRIORITY = [
         LogLevel::DEBUG => 0,

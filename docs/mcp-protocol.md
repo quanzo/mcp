@@ -1,61 +1,64 @@
-## MCP протокол в этом репозитории
+## MCP протокол
 
-Эта реализация использует **JSON-RPC 2.0** поверх:
-- **stdio** (основной режим): `bin/mcp_server.php`
-- **HTTP gateway** (прокси): `bin/http_server.php`, `bin/http_server_amp.php`
+Целевая спецификация: [2025-03-26](https://modelcontextprotocol.io/specification/2025-03-26).  
+Negotiation также: `2024-11-05`, `2025-06-18`, `2025-11-25`.
 
-### Формат JSON-RPC
+Транспорты: **stdio** и **Streamable HTTP**. Сообщения — JSON-RPC 2.0.
 
-Запрос:
+**Кастомный API запрещён:** нет `mcp.listCommands`, нет вызова tool как `method: "echo"`, нет `params.auth`.
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "mcp.listCommands",
-  "params": { "auth": "secret" }
-}
-```
+Ядро: `quanzo\mcp\classes\McpServer`. Транспорт только доставляет сообщения.
 
-Ответ:
+### Lifecycle
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": { "commands": [] }
-}
-```
+1. Client → `initialize`
+2. Server → `InitializeResult` (`protocolVersion`, `capabilities`, `serverInfo`)
+3. Client → `notifications/initialized` (без ответа)
+4. Далее — обычные методы
 
-Ошибка:
+До `initialize` разрешены только `initialize` и `ping`.
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "error": { "code": -32602, "message": "Invalid parameters" }
-}
-```
+### Методы
 
-### MCP-методы vs tools-команды
+| Method | Result |
+|---|---|
+| `initialize` | `{protocolVersion, capabilities, serverInfo}` |
+| `ping` | `{}` |
+| `tools/list` | `{tools:[{name, description, inputSchema}]}` |
+| `tools/call` | `{content:[{type:"text", text}], isError}` |
+| `resources/list` | `{resources:[{uri, name, mimeType?, description?}]}` |
+| `resources/read` | `{contents:[{uri, mimeType, text}]}` |
 
-`quanzo\mcp\classes\Server` различает:
-- **MCP-методы**: `mcp.listCommands`, `mcp.listResources`, `mcp.readResource`
-- **Команды**: всё остальное трактуется как “выполнить команду с именем = method”
+### Ошибки JSON-RPC
 
-### Авторизация через `params.auth`
+| Code | Когда |
+|---|---|
+| `-32700` | Parse error |
+| `-32600` | Invalid Request |
+| `-32601` | Method not found |
+| `-32602` | Invalid params / unknown tool / schema |
+| `-32603` | Internal error (в т.ч. сбой чтения ресурса) |
+| `-32002` | Not initialized / resource not found |
 
-Если сервер запущен с ключом авторизации:
-- клиент **должен** передавать `params.auth`
-- при успехе сервер **удаляет** `auth` из массива параметров перед передачей в `CommandInterface::execute()`
+Ошибки выполнения tool (бизнес-логика) → **не** JSON-RPC error, а `result.isError: true`.
 
-Это означает, что схема параметров команды (`getInputSchema()`) не обязана описывать `auth`.
+### Неверный ввод → ожидаемый ответ
 
-### Stdio: “одна строка — один JSON”
+| Ввод | Ответ |
+|---|---|
+| Битый JSON (stdio) | `-32700`, цикл продолжается |
+| Unknown method | `-32601` |
+| `tools/call` без name / arguments не object | `-32602` |
+| Unknown tool | `-32602` |
+| Schema validation fail | `-32602` + `validation_errors` |
+| Divide by zero в calculate | `isError: true` |
+| Resource `getContent` throw | `-32603` |
+| Unknown notification | нет ответа |
 
-Сервер читает вход через `fgets(STDIN)`, поэтому:
-- запрос должен заканчиваться переводом строки
-- ответы сервера тоже построчные (в конце всегда перевод строки)
+### Stdio framing
 
-Если клиент пишет JSON без перевода строки — сервер будет ждать завершения строки.
+- Одна строка = одно JSON-сообщение
+- STDOUT — только MCP messages
+- Логи — файл / STDERR
 
+Реализация: `McpServer` + `StdioTransport` (`bin/mcp_server.php`).

@@ -23,9 +23,10 @@ REST `/api/*` **не является** MCP и не поддерживается
 
 ### POST
 
-1. `Accept` должен допускать `application/json` (иначе **406**)
-2. Notification / client response → **202**, пустое тело
-3. Request → **200** + `application/json` с JSON-RPC response
+1. `Accept` **обязан** включать и `application/json`, и `text/event-stream` (иначе **406**); пустой Accept → **406**; `*/*` допускается
+2. `MCP-Protocol-Version`: если есть и не из поддерживаемых → **400**; отсутствует → default `2025-03-26`
+3. Notification / client response → **202**, пустое тело
+4. Request → **200** + `application/json` с JSON-RPC response
 
 ### Сессии
 

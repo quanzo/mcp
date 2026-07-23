@@ -18,8 +18,10 @@ $server->registerCommand(new YourCommand());
 ### Валидация
 
 `JsonSchemaValidator` + `getInputSchema()`.  
-`additionalProperties: false` запрещает лишние ключи.  
+Подмножество: type, required, enum, min/max, minLength/maxLength, **minItems/maxItems**, pattern, properties, items, `additionalProperties: false`.  
 `pattern` — полное совпадение строки.
 
 Ошибка схемы → JSON-RPC `-32602`.  
-Runtime внутри `doExecute` → `isError: true` в result.
+Runtime/business внутри `doExecute` (в т.ч. занятый email в `UserCommand`) → `isError: true` в result.
+
+Каталог tools: `src/commands/` (`quanzo\mcp\commands`).

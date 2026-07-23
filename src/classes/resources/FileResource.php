@@ -140,21 +140,6 @@ class FileResource implements ResourceInterface
     }
 
     /**
-     * Возвращает метаданные ресурса
-     *
-     * @return array Метаданные ресурса
-     */
-    public function getMetadata(): array
-    {
-        return [
-            'type' => 'file',
-            'pattern' => $this->uriPattern,
-            'basePath' => $this->basePath,
-            'timestamp' => time()
-        ];
-    }
-
-    /**
      * Проверяет соответствие URI паттерну ресурса
      *
      * @param string $uri URI для проверки

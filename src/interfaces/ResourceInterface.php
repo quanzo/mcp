@@ -51,13 +51,6 @@ interface ResourceInterface
     public function getContent(?string $requestedUri = null): string;
 
     /**
-     * Возвращает метаданные ресурса (внутренние, не часть wire-формата MCP)
-     *
-     * @return array Ассоциативный массив метаданных ресурса
-     */
-    public function getMetadata(): array;
-
-    /**
      * Проверяет, соответствует ли указанный URI данному ресурсу
      *
      * @param string $uri URI для проверки

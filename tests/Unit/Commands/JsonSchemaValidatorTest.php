@@ -125,6 +125,8 @@ class JsonSchemaValidatorTest extends TestCase
                 'tags' => [
                     'type' => 'array',
                     'items' => ['type' => 'string'],
+                    'minItems' => 1,
+                    'maxItems' => 3,
                 ],
                 'meta' => [
                     'type' => 'object',
@@ -193,6 +195,21 @@ class JsonSchemaValidatorTest extends TestCase
             ],
             'nested_ok' => [
                 ['name' => 'Ab', 'role' => 'user', 'score' => 1, 'meta' => ['note' => 'x']],
+                $base,
+                true,
+            ],
+            'min_items_fail' => [
+                ['name' => 'Ab', 'role' => 'user', 'score' => 1, 'tags' => []],
+                $base,
+                false,
+            ],
+            'max_items_fail' => [
+                ['name' => 'Ab', 'role' => 'user', 'score' => 1, 'tags' => ['a', 'b', 'c', 'd']],
+                $base,
+                false,
+            ],
+            'min_items_ok' => [
+                ['name' => 'Ab', 'role' => 'user', 'score' => 1, 'tags' => ['a']],
                 $base,
                 true,
             ],

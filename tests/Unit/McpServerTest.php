@@ -7,8 +7,8 @@ namespace Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use quanzo\mcp\classes\McpServer;
-use quanzo\mcp\classes\commands\BaseCommand;
-use quanzo\mcp\classes\commands\CalculateCommand;
+use quanzo\mcp\commands\BaseCommand;
+use quanzo\mcp\commands\CalculateCommand;
 use quanzo\mcp\classes\dto\mcp\ServerInfo;
 use quanzo\mcp\interfaces\ResourceInterface;
 
@@ -102,11 +102,6 @@ class McpServerTest extends TestCase
                 return 'hello';
             }
 
-            public function getMetadata(): array
-            {
-                return [];
-            }
-
             public function matchesUri(string $uri): bool
             {
                 return $uri === $this->getUri();
@@ -189,7 +184,7 @@ class McpServerTest extends TestCase
         ]);
 
         self::assertNull($response);
-        self::assertTrue($server->isInitialized());
+        self::assertTrue($server->isInitializeDone());
     }
 
     /**
@@ -677,11 +672,6 @@ class McpServerTest extends TestCase
             public function getContent(?string $requestedUri = null): string
             {
                 throw new \RuntimeException('cannot read');
-            }
-
-            public function getMetadata(): array
-            {
-                return [];
             }
 
             public function matchesUri(string $uri): bool

@@ -12,7 +12,9 @@
 
 1. Протокольные изменения — только `McpServer` + DTO в `dto/mcp/`
 2. Framing — `StdioTransport` / `StreamableHttpTransport`
-3. **Не добавлять** кастомные JSON-RPC методы и REST «обёртки» над MCP (`mcp.listCommands`, `/api/execute` и т.п.)
+3. Tools — `src/commands/` (`quanzo\mcp\commands`)
+4. HTTP bootstrap — `HttpServerBootstrap` (общий для `bin/http_server*.php`)
+5. **Не добавлять** кастомные JSON-RPC методы и REST «обёртки» над MCP (`mcp.listCommands`, `/api/execute` и т.п.)
 
 ### Resilience-тесты
 

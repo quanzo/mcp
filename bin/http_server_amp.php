@@ -20,9 +20,7 @@ use Amp\Http\Server\Response;
 use Amp\Http\Server\SocketHttpServer;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
-use quanzo\mcp\classes\McpServerFactory;
-use quanzo\mcp\classes\log\FileLogger;
-use quanzo\mcp\classes\transport\StreamableHttpTransport;
+use quanzo\mcp\helpers\HttpServerBootstrap;
 use Revolt\EventLoop;
 
 if (php_sapi_name() !== 'cli') {
@@ -38,23 +36,8 @@ if ($port < 1 || $port > 65535) {
     exit(1);
 }
 
-foreach (['logs', 'config', 'data'] as $dir) {
-    $path = $projectRoot . '/' . $dir;
-    if (!is_dir($path)) {
-        mkdir($path, 0755, true);
-    }
-}
-
-$fileLogger = new FileLogger($projectRoot . '/logs/mcp-http-amp.log', \Psr\Log\LogLevel::INFO);
-$bearer = getenv('MCP_HTTP_BEARER') ?: null;
-if ($bearer === '') {
-    $bearer = null;
-}
-$originsEnv = getenv('MCP_ALLOWED_ORIGINS') ?: '';
-$origins = $originsEnv !== '' ? array_values(array_filter(array_map('trim', explode(',', $originsEnv)))) : [];
-
-$mcpServer = McpServerFactory::createDefault($projectRoot, $fileLogger);
-$transport = new StreamableHttpTransport($mcpServer, $bearer, $origins);
+$fileLogger = HttpServerBootstrap::createFileLogger($projectRoot, 'mcp-http-amp.log');
+$transport = HttpServerBootstrap::createTransport($projectRoot, $fileLogger);
 
 $log = new Logger('mcp-http-amp');
 $log->pushHandler(new StreamHandler('php://stdout', Logger::INFO));

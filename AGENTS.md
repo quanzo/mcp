@@ -16,12 +16,10 @@
 * `src/classes` - корневой каталог классов (`McpServer`, factory)
 * `src/classes/transport` - stdio и Streamable HTTP транспорты
 * `src/classes/dto` / `src/classes/dto/mcp` - DTO JSON-RPC и MCP
-* `src/classes/commands` - tools
+* `src/commands` - tools (MCP tools / commands)
 * `src/classes/resources` - resources
 * `src/classes/client` - MCPClient (stdio)
-* `src/enums` - перечисления enums
 * `src/helpers` - хелперы здесь храним
 * `src/interfaces` - определения интерфейсов
-* `src/traits` - трейты
 * `docs/` - директория со справочной информацией
 * `bin/` - entry points (`mcp_server.php`, `http_server.php`, `http_server_amp.php`)

@@ -1,8 +1,6 @@
 <?php
 
-namespace quanzo\mcp\classes\commands;
-
-use quanzo\mcp\classes\validation\ValidationException;
+namespace quanzo\mcp\commands;
 
 /**
  * Класс UserCommand
@@ -26,8 +24,8 @@ class UserCommand extends BaseCommand
      */
     public function __construct($emailTakenChecker = null)
     {
-        $this->name = 'user_create';
-        $this->description = 'Создание нового пользователя';
+        $this->name              = 'user_create';
+        $this->description       = 'Создание нового пользователя';
         $this->emailTakenChecker = $emailTakenChecker ?? ['admin@example.com', 'test@example.com'];
     }
 
@@ -39,36 +37,36 @@ class UserCommand extends BaseCommand
     public function getInputSchema(): array
     {
         return [
-            'type' => 'object',
+            'type'       => 'object',
             'properties' => [
                 'name' => [
-                    'type' => 'string',
-                    'minLength' => 2,
-                    'maxLength' => 50,
+                    'type'        => 'string',
+                    'minLength'   => 2,
+                    'maxLength'   => 50,
                     'description' => 'Имя пользователя'
                 ],
                 'email' => [
-                    'type' => 'string',
-                    'pattern' => '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                    'type'        => 'string',
+                    'pattern'     => '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
                     'description' => 'Email пользователя'
                 ],
                 'age' => [
-                    'type' => 'integer',
-                    'minimum' => 18,
-                    'maximum' => 120,
+                    'type'        => 'integer',
+                    'minimum'     => 18,
+                    'maximum'     => 120,
                     'description' => 'Возраст пользователя'
                 ],
                 'roles' => [
-                    'type' => 'array',
+                    'type'  => 'array',
                     'items' => [
                         'type' => 'string',
                         'enum' => ['user', 'admin', 'moderator']
                     ],
-                    'minItems' => 1,
+                    'minItems'    => 1,
                     'description' => 'Роли пользователя'
                 ]
             ],
-            'required' => ['name', 'email'],
+            'required'             => ['name', 'email'],
             'additionalProperties' => false
         ];
     }
@@ -80,34 +78,29 @@ class UserCommand extends BaseCommand
      *
      * @return array Результат создания пользователя
      *
-     * @throws ValidationException Если email уже используется
+     * @throws \RuntimeException Если email уже используется (business → isError)
      */
     protected function doExecute(array $params): array
     {
-        // Дополнительная бизнес-логика валидации
+        // Бизнес-ошибка (не schema) — RuntimeException → CallToolResult.isError
         if (isset($params['email']) && $this->isEmailTaken($params['email'])) {
-            throw new ValidationException([
-                [
-                    'property' => 'email',
-                    'message' => 'Email уже используется'
-                ]
-            ]);
+            throw new \RuntimeException('Email уже используется');
         }
 
         // Имитация создания пользователя в базе данных
         $userId = uniqid('user_', true);
 
         return [
-            'id' => $userId,
-            'name' => $params['name'],
-            'email' => $params['email'],
-            'age' => $params['age'] ?? null,
-            'roles' => $params['roles'] ?? ['user'],
+            'id'         => $userId,
+            'name'       => $params['name'],
+            'email'      => $params['email'],
+            'age'        => $params['age'] ?? null,
+            'roles'      => $params['roles'] ?? ['user'],
             'created_at' => date('c'),
-            'status' => 'active',
-            'metadata' => [
+            'status'     => 'active',
+            'metadata'   => [
                 'version' => '1.0',
-                'source' => 'mcp-server'
+                'source'  => 'mcp-server'
             ]
         ];
     }

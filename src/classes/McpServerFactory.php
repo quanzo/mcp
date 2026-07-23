@@ -6,12 +6,11 @@ namespace quanzo\mcp\classes;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use quanzo\mcp\classes\commands\CalculateCommand;
-use quanzo\mcp\classes\commands\EchoCommand;
-use quanzo\mcp\classes\commands\MyCustomCommand;
-use quanzo\mcp\classes\commands\UserCommand;
 use quanzo\mcp\classes\dto\mcp\ServerInfo;
 use quanzo\mcp\classes\resources\FileResource;
+use quanzo\mcp\commands\CalculateCommand;
+use quanzo\mcp\commands\EchoCommand;
+use quanzo\mcp\commands\UserCommand;
 
 /**
  * Класс McpServerFactory
@@ -48,9 +47,13 @@ class McpServerFactory
             $raw = file_get_contents($configFile);
             if ($raw !== false) {
                 $config = json_decode($raw, true);
-                if (is_array($config)) {
-                    $serverName = $config['server']['name'] ?? $serverName;
-                    $serverVersion = $config['server']['version'] ?? $serverVersion;
+                if (is_array($config) && isset($config['server']) && is_array($config['server'])) {
+                    $serverName = is_string($config['server']['name'] ?? null)
+                        ? $config['server']['name']
+                        : $serverName;
+                    $serverVersion = is_string($config['server']['version'] ?? null)
+                        ? $config['server']['version']
+                        : $serverVersion;
                 }
             }
         }
@@ -59,7 +62,6 @@ class McpServerFactory
         $server->registerCommand(new EchoCommand());
         $server->registerCommand(new CalculateCommand());
         $server->registerCommand(new UserCommand());
-        $server->registerCommand(new MyCustomCommand());
 
         $server->registerResource(
             new FileResource(

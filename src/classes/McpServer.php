@@ -90,14 +90,7 @@ class McpServer
     private LoggerInterface $logger;
 
     /**
-     * Флаг завершения initialize (получен notifications/initialized или после initialize для stdio)
-     *
-     * @var bool
-     */
-    private bool $initialized = false;
-
-    /**
-     * Флаг: initialize уже выполнен
+     * Флаг: initialize уже выполнен (достаточно для вызова tools/*)
      *
      * @var bool
      */
@@ -109,6 +102,18 @@ class McpServer
      * @var string|null
      */
     private ?string $protocolVersion = null;
+
+    /**
+     * Проверяет, поддерживается ли версия протокола
+     *
+     * @param string $version Версия (например 2025-03-26)
+     *
+     * @return bool
+     */
+    public static function isSupportedProtocolVersion(string $version): bool
+    {
+        return in_array($version, self::SUPPORTED_PROTOCOL_VERSIONS, true);
+    }
 
     /**
      * Конструктор McpServer
@@ -181,16 +186,6 @@ class McpServer
     }
 
     /**
-     * Проверяет, получено ли notifications/initialized
-     *
-     * @return bool
-     */
-    public function isInitialized(): bool
-    {
-        return $this->initialized;
-    }
-
-    /**
      * Обрабатывает одно JSON-RPC сообщение
      *
      * Возвращает массив ответа или null для notification (без поля id).
@@ -224,7 +219,6 @@ class McpServer
 
         // Спец-notification завершения handshake — ответа не шлём
         if ($method === 'notifications/initialized') {
-            $this->initialized = true;
             $this->logger->info('Client sent notifications/initialized');
 
             return null;

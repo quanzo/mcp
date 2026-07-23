@@ -6,8 +6,8 @@ namespace quanzo\mcp\classes\validation;
  * Класс JsonSchemaValidator
  *
  * Реализует валидацию данных по JSON Schema (подмножество).
- * Поддерживает type, required, enum, min/max, minLength/maxLength, pattern,
- * properties, items, additionalProperties: false.
+ * Поддерживает type, required, enum, min/max, minLength/maxLength, minItems/maxItems,
+ * pattern, properties, items, additionalProperties: false.
  * Не бросает исключения — возвращает список ошибок (пустой = OK).
  *
  * Пример использования:
@@ -241,6 +241,26 @@ class JsonSchemaValidator
                     );
                     $errors = array_merge($errors, $nestedErrors);
                 }
+            }
+        }
+
+        // Проверка минимального числа элементов массива
+        if (isset($schema['minItems']) && is_array($value) && array_is_list($value)) {
+            if (count($value) < (int) $schema['minItems']) {
+                $errors[] = [
+                    'property' => $propertyPath,
+                    'message' => "Array must have at least {$schema['minItems']} items"
+                ];
+            }
+        }
+
+        // Проверка максимального числа элементов массива
+        if (isset($schema['maxItems']) && is_array($value) && array_is_list($value)) {
+            if (count($value) > (int) $schema['maxItems']) {
+                $errors[] = [
+                    'property' => $propertyPath,
+                    'message' => "Array must have at most {$schema['maxItems']} items"
+                ];
             }
         }
 

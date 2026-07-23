@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace quanzo\mcp\classes\transport;
 
+use quanzo\mcp\classes\McpServer;
+use quanzo\mcp\classes\dto\JsonRpcResponse;
+use quanzo\mcp\helpers\JsonHelper;
+
 /**
  * Класс StreamableHttpTransport
  *
@@ -45,12 +49,12 @@ class StreamableHttpTransport
     /**
      * Конструктор StreamableHttpTransport
      *
-     * @param \quanzo\mcp\classes\McpServer $templateServer Шаблон с tools/resources
+     * @param McpServer $templateServer Шаблон с tools/resources
      * @param string|null $bearerToken Опциональный Bearer token
      * @param list<string> $allowedOrigins Разрешённые Origin
      */
     public function __construct(
-        \quanzo\mcp\classes\McpServer $templateServer,
+        McpServer $templateServer,
         ?string $bearerToken = null,
         array $allowedOrigins = []
     ) {
@@ -115,6 +119,11 @@ class StreamableHttpTransport
         }
 
         if ($method === 'DELETE') {
+            $protocolError = $this->validateProtocolVersionHeader($headers);
+            if ($protocolError !== null) {
+                return $protocolError;
+            }
+
             return $this->handleDelete($headers);
         }
 
@@ -157,24 +166,25 @@ class StreamableHttpTransport
     private function handlePost(array $headers, string $body): HttpTransportResult
     {
         $accept = $headers['accept'] ?? '';
-        if ($accept !== '' && !$this->acceptsJson($accept)) {
-            return HttpTransportResult::text(406, 'Not Acceptable: application/json required', $this->corsHeaders());
+        if (!$this->acceptsMcp($accept)) {
+            return HttpTransportResult::text(
+                406,
+                'Not Acceptable: Accept must include application/json and text/event-stream',
+                $this->corsHeaders()
+            );
+        }
+
+        $protocolError = $this->validateProtocolVersionHeader($headers);
+        if ($protocolError !== null) {
+            return $protocolError;
         }
 
         try {
-            $decoded = \quanzo\mcp\helpers\JsonHelper::decode($body, true);
+            $decoded = JsonHelper::decode($body, true);
         } catch (\JsonException $e) {
             return HttpTransportResult::json(
                 400,
-                [
-                    'jsonrpc' => '2.0',
-                    'id' => null,
-                    'error' => [
-                        'code' => -32700,
-                        'message' => 'Parse error',
-                        'data' => $e->getMessage(),
-                    ],
-                ],
+                JsonRpcResponse::parseError($e->getMessage()),
                 $this->corsHeaders()
             );
         }
@@ -182,15 +192,7 @@ class StreamableHttpTransport
         if (!is_array($decoded)) {
             return HttpTransportResult::json(
                 400,
-                [
-                    'jsonrpc' => '2.0',
-                    'id' => null,
-                    'error' => [
-                        'code' => -32700,
-                        'message' => 'Parse error',
-                        'data' => 'Expected JSON object or batch array',
-                    ],
-                ],
+                JsonRpcResponse::parseError('Expected JSON object or batch array'),
                 $this->corsHeaders()
             );
         }
@@ -202,6 +204,31 @@ class StreamableHttpTransport
 
         /** @var array<string, mixed> $decoded */
         return $this->handleSingleMessage($headers, $decoded);
+    }
+
+    /**
+     * Проверяет MCP-Protocol-Version: отсутствует → default; неподдерживаемая → 400
+     *
+     * @param array<string, string> $headers Заголовки
+     *
+     * @return HttpTransportResult|null Ошибка или null если OK
+     */
+    private function validateProtocolVersionHeader(array $headers): ?HttpTransportResult
+    {
+        $version = $headers['mcp-protocol-version'] ?? '';
+        if ($version === '') {
+            return null;
+        }
+
+        if (!McpServer::isSupportedProtocolVersion($version)) {
+            return HttpTransportResult::text(
+                400,
+                'Bad Request: unsupported MCP-Protocol-Version',
+                $this->corsHeaders()
+            );
+        }
+
+        return null;
     }
 
     /**
@@ -311,7 +338,7 @@ class StreamableHttpTransport
 
         return new HttpTransportResult(
             200,
-            \quanzo\mcp\helpers\JsonHelper::encode($responses),
+            JsonHelper::encode($responses),
             array_merge($extraHeaders, ['Content-Type' => 'application/json'])
         );
     }
@@ -333,16 +360,24 @@ class StreamableHttpTransport
     }
 
     /**
-     * Проверяет Accept на application/json
+     * Проверяет Accept: нужны application/json и text/event-stream (или wildcard * / *)
      *
      * @param string $accept Заголовок Accept
      *
      * @return bool
      */
-    private function acceptsJson(string $accept): bool
+    private function acceptsMcp(string $accept): bool
     {
+        if ($accept === '') {
+            return false;
+        }
+
+        if (stripos($accept, '*/*') !== false) {
+            return true;
+        }
+
         return stripos($accept, 'application/json') !== false
-            || stripos($accept, '*/*') !== false;
+            && stripos($accept, 'text/event-stream') !== false;
     }
 
     /**

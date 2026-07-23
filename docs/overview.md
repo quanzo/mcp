@@ -20,8 +20,9 @@
 | `StdioTransport` | newline JSON STDIN/STDOUT |
 | `StreamableHttpTransport` | POST/GET/DELETE `/mcp` |
 | `McpSessionStore` | HTTP-сессии (`Mcp-Session-Id`) |
+| `HttpServerBootstrap` | Общая подготовка HTTP entry points |
 | `MCPClient` | stdio-клиент для тестов |
-| `src/classes/commands/*` | Tools |
+| `src/commands/*` | Tools (`quanzo\mcp\commands`) |
 | `src/classes/resources/*` | Resources |
 | `src/classes/dto/mcp/*` | DTO wire-формата |
 

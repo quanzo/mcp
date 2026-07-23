@@ -12,7 +12,6 @@
 - `getUri()`, `getName()`, `getDescription()`, `getMimeType()`
 - `getContent(?string $requestedUri)`
 - `matchesUri(string $uri)` — для паттернов
-- `getMetadata()` — внутренние данные (не в wire MCP)
 
 Демо-ресурсы регистрируются в `McpServerFactory`.
 

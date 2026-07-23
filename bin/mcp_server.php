@@ -44,9 +44,7 @@ if (!file_exists($configFile)) {
         'server' => [
             'name' => 'quanzo-mcp',
             'version' => '1.0.0',
-            'started_at' => date('c'),
         ],
-        'commands' => ['echo', 'calculate', 'user_create', 'my_command'],
     ];
     file_put_contents(
         $configFile,

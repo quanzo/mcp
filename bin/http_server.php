@@ -17,9 +17,8 @@ $projectRoot = dirname(__DIR__);
 
 require_once $projectRoot . '/vendor/autoload.php';
 
-use quanzo\mcp\classes\McpServerFactory;
-use quanzo\mcp\classes\log\FileLogger;
 use quanzo\mcp\classes\transport\StreamableHttpTransport;
+use quanzo\mcp\helpers\HttpServerBootstrap;
 use quanzo\mcp\helpers\JsonHelper;
 
 /**
@@ -37,28 +36,8 @@ function mcp_http_transport(string $projectRoot): StreamableHttpTransport
         return $transport;
     }
 
-    foreach (['logs', 'config', 'data'] as $dir) {
-        $path = $projectRoot . '/' . $dir;
-        if (!is_dir($path)) {
-            mkdir($path, 0755, true);
-        }
-    }
-
-    $logger = new FileLogger(
-        $projectRoot . '/logs/mcp-http.log',
-        \Psr\Log\LogLevel::INFO
-    );
-
-    $bearer = getenv('MCP_HTTP_BEARER') ?: null;
-    if ($bearer === '') {
-        $bearer = null;
-    }
-
-    $originsEnv = getenv('MCP_ALLOWED_ORIGINS') ?: '';
-    $origins = $originsEnv !== '' ? array_values(array_filter(array_map('trim', explode(',', $originsEnv)))) : [];
-
-    $server = McpServerFactory::createDefault($projectRoot, $logger);
-    $transport = new StreamableHttpTransport($server, $bearer, $origins);
+    $logger = HttpServerBootstrap::createFileLogger($projectRoot, 'mcp-http.log');
+    $transport = HttpServerBootstrap::createTransport($projectRoot, $logger);
 
     return $transport;
 }

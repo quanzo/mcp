@@ -1,6 +1,6 @@
 <?php
 
-namespace quanzo\mcp\classes\commands;
+namespace quanzo\mcp\commands;
 
 use quanzo\mcp\interfaces\CommandInterface;
 use quanzo\mcp\classes\validation\JsonSchemaValidator;

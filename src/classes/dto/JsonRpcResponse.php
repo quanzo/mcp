@@ -80,6 +80,18 @@ class JsonRpcResponse
     }
 
     /**
+     * Создаёт ответ JSON-RPC Parse error (-32700)
+     *
+     * @param string|null $data Детали ошибки разбора
+     *
+     * @return array<string, mixed>
+     */
+    public static function parseError(?string $data = null): array
+    {
+        return self::error(null, -32700, 'Parse error', $data)->toArray();
+    }
+
+    /**
      * Преобразует ответ в массив для json_encode
      *
      * @return array<string, mixed>

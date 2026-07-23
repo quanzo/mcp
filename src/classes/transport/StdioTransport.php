@@ -7,6 +7,7 @@ namespace quanzo\mcp\classes\transport;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use quanzo\mcp\classes\McpServer;
+use quanzo\mcp\classes\dto\JsonRpcResponse;
 use quanzo\mcp\helpers\JsonHelper;
 
 /**
@@ -100,17 +101,7 @@ class StdioTransport
                 /** @var array<string, mixed> $message */
                 $message = JsonHelper::decode($trimmed, true);
                 if (!is_array($message)) {
-                    $this->writeResponse(
-                        [
-                            'jsonrpc' => '2.0',
-                            'id' => null,
-                            'error' => [
-                                'code' => -32700,
-                                'message' => 'Parse error',
-                                'data' => 'Message must be a JSON object',
-                            ],
-                        ]
-                    );
+                    $this->writeResponse(JsonRpcResponse::parseError('Message must be a JSON object'));
                     continue;
                 }
 
@@ -119,29 +110,11 @@ class StdioTransport
                     $this->writeResponse($response);
                 }
             } catch (\JsonException $e) {
-                $this->writeResponse(
-                    [
-                        'jsonrpc' => '2.0',
-                        'id' => null,
-                        'error' => [
-                            'code' => -32700,
-                            'message' => 'Parse error',
-                            'data' => $e->getMessage(),
-                        ],
-                    ]
-                );
+                $this->writeResponse(JsonRpcResponse::parseError($e->getMessage()));
             } catch (\Throwable $e) {
                 $this->logger->error('Unhandled transport error', ['message' => $e->getMessage()]);
                 $this->writeResponse(
-                    [
-                        'jsonrpc' => '2.0',
-                        'id' => null,
-                        'error' => [
-                            'code' => -32603,
-                            'message' => 'Internal error',
-                            'data' => $e->getMessage(),
-                        ],
-                    ]
+                    JsonRpcResponse::error(null, -32603, 'Internal error', $e->getMessage())->toArray()
                 );
             }
         }

@@ -26,7 +26,7 @@
 | Ситуация | Ответ |
 |---|---|
 | Ошибка схемы / unknown tool | JSON-RPC `-32602` |
-| Runtime tool (например деление на ноль) | `result.isError: true` |
+| Runtime/business tool (деление на ноль, занятый email) | `result.isError: true` |
 | Непойманный сбой вне tool | `-32603` |
 
 ### Notifications

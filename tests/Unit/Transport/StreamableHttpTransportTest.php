@@ -7,7 +7,7 @@ namespace Tests\Unit\Transport;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use quanzo\mcp\classes\McpServer;
-use quanzo\mcp\classes\commands\EchoCommand;
+use quanzo\mcp\commands\EchoCommand;
 use quanzo\mcp\classes\dto\mcp\ServerInfo;
 use quanzo\mcp\classes\transport\StreamableHttpTransport;
 use quanzo\mcp\helpers\JsonHelper;
@@ -577,5 +577,163 @@ class StreamableHttpTransportTest extends TestCase
         self::assertSame(200, $result->getStatusCode());
         $payload = JsonHelper::decode($result->getBody(), true);
         self::assertSame(-32602, $payload['error']['code']);
+    }
+
+    /**
+     * Тест: пустой Accept → 406
+     *
+     * @return void
+     */
+    public function testEmptyAcceptReturns406(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'POST',
+            '/mcp',
+            ['content-type' => 'application/json'],
+            '{}'
+        );
+        self::assertSame(406, $result->getStatusCode());
+    }
+
+    /**
+     * Тест: Accept только JSON без event-stream → 406
+     *
+     * @return void
+     */
+    public function testAcceptJsonOnlyReturns406(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'POST',
+            '/mcp',
+            ['accept' => 'application/json', 'content-type' => 'application/json'],
+            '{}'
+        );
+        self::assertSame(406, $result->getStatusCode());
+    }
+
+    /**
+     * Тест: Accept wildcard (* / *) допускается
+     *
+     * @return void
+     */
+    public function testAcceptStarStarAllowed(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'POST',
+            '/mcp',
+            ['accept' => '*/*', 'content-type' => 'application/json'],
+            JsonHelper::encode([
+                'jsonrpc' => '2.0',
+                'id' => 1,
+                'method' => 'initialize',
+                'params' => [
+                    'protocolVersion' => '2025-03-26',
+                    'capabilities' => new \stdClass(),
+                    'clientInfo' => ['name' => 't', 'version' => '1'],
+                ],
+            ])
+        );
+        self::assertSame(200, $result->getStatusCode());
+    }
+
+    /**
+     * Тест: отсутствие MCP-Protocol-Version допустимо (default)
+     *
+     * @return void
+     */
+    public function testMissingProtocolVersionHeaderAllowed(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'POST',
+            '/mcp',
+            $this->headers(),
+            JsonHelper::encode([
+                'jsonrpc' => '2.0',
+                'id' => 1,
+                'method' => 'initialize',
+                'params' => [
+                    'protocolVersion' => '2025-03-26',
+                    'capabilities' => new \stdClass(),
+                    'clientInfo' => ['name' => 't', 'version' => '1'],
+                ],
+            ])
+        );
+        self::assertSame(200, $result->getStatusCode());
+    }
+
+    /**
+     * Тест: поддерживаемая MCP-Protocol-Version → OK
+     *
+     * @return void
+     */
+    public function testSupportedProtocolVersionHeaderOk(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'POST',
+            '/mcp',
+            $this->headers(['mcp-protocol-version' => '2025-03-26']),
+            JsonHelper::encode([
+                'jsonrpc' => '2.0',
+                'id' => 1,
+                'method' => 'initialize',
+                'params' => [
+                    'protocolVersion' => '2025-03-26',
+                    'capabilities' => new \stdClass(),
+                    'clientInfo' => ['name' => 't', 'version' => '1'],
+                ],
+            ])
+        );
+        self::assertSame(200, $result->getStatusCode());
+    }
+
+    /**
+     * Тест: неподдерживаемая MCP-Protocol-Version → 400
+     *
+     * @return void
+     */
+    public function testUnsupportedProtocolVersionReturns400(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'POST',
+            '/mcp',
+            $this->headers(['mcp-protocol-version' => '1999-01-01']),
+            JsonHelper::encode([
+                'jsonrpc' => '2.0',
+                'id' => 1,
+                'method' => 'initialize',
+                'params' => [
+                    'protocolVersion' => '2025-03-26',
+                    'capabilities' => new \stdClass(),
+                    'clientInfo' => ['name' => 't', 'version' => '1'],
+                ],
+            ])
+        );
+        self::assertSame(400, $result->getStatusCode());
+    }
+
+    /**
+     * Тест: DELETE с неподдерживаемой версией → 400
+     *
+     * @return void
+     */
+    public function testDeleteUnsupportedProtocolVersionReturns400(): void
+    {
+        $transport = $this->createTransport();
+        $result = $transport->handleHttpRequest(
+            'DELETE',
+            '/mcp',
+            $this->headers([
+                'mcp-session-id' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                'mcp-protocol-version' => '0.0.0',
+            ]),
+            ''
+        );
+        self::assertSame(400, $result->getStatusCode());
     }
 }

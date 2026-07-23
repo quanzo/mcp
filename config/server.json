@@ -1,13 +1,6 @@
 {
     "server": {
         "name": "quanzo-mcp",
-        "version": "1.0.0",
-        "started_at": "2026-07-16T00:00:00+00:00"
-    },
-    "commands": [
-        "echo",
-        "calculate",
-        "user_create",
-        "my_command"
-    ]
+        "version": "1.0.0"
+    }
 }

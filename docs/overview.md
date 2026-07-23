@@ -23,6 +23,7 @@
 | `HttpServerBootstrap` | Общая подготовка HTTP entry points |
 | `MCPClient` | stdio-клиент для тестов |
 | `src/commands/*` | Tools (`quanzo\mcp\commands`) |
+| `src/wiki/*` | Домен wiki/ollama поиска (searchers, loaders, DTO) |
 | `src/classes/resources/*` | Resources |
 | `src/classes/dto/mcp/*` | DTO wire-формата |
 

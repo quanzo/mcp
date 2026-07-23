@@ -10,7 +10,11 @@ use quanzo\mcp\classes\dto\mcp\ServerInfo;
 use quanzo\mcp\classes\resources\FileResource;
 use quanzo\mcp\commands\CalculateCommand;
 use quanzo\mcp\commands\EchoCommand;
+use quanzo\mcp\commands\OllamaSearchCommand;
+use quanzo\mcp\commands\RuWikiSearchCommand;
+use quanzo\mcp\commands\UniSearchCommand;
 use quanzo\mcp\commands\UserCommand;
+use quanzo\mcp\commands\WikiSearchCommand;
 
 /**
  * Класс McpServerFactory
@@ -62,6 +66,10 @@ class McpServerFactory
         $server->registerCommand(new EchoCommand());
         $server->registerCommand(new CalculateCommand());
         $server->registerCommand(new UserCommand());
+        $server->registerCommand(new WikiSearchCommand());
+        $server->registerCommand(new RuWikiSearchCommand());
+        $server->registerCommand(new UniSearchCommand());
+        $server->registerCommand(new OllamaSearchCommand());
 
         $server->registerResource(
             new FileResource(

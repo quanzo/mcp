@@ -3,14 +3,17 @@
     "description": "MCP Server implementation in PHP 8.1",
     "type": "project",
     "require": {
-        "php"              : ">=8.1",
-        "psr/log"          : "^3.0",
+        "php": ">=8.1",
+        "psr/log": "^3.0",
         "amphp/http-server": "^3.4",
-        "amphp/process"    : "^2.0",
-        "amphp/socket"     : "^2.3",
-        "amphp/log"        : "^2.0",
-        "monolog/monolog"  : "^3.0",
-        "revolt/event-loop": "^1.0"
+        "amphp/process": "^2.0",
+        "amphp/socket": "^2.3",
+        "amphp/log": "^2.0",
+        "monolog/monolog": "^3.0",
+        "revolt/event-loop": "^1.0",
+        "amphp/http-client": "^5.0",
+        "amphp/amp": "^3.0",
+        "psr/cache": "^3.0"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.1",
@@ -29,5 +32,11 @@
         }
     ],
     "minimum-stability": "stable",
-    "keywords": ["mcp", "model-context-protocol", "ai", "llm", "server"]
+    "keywords": [
+        "mcp",
+        "model-context-protocol",
+        "ai",
+        "llm",
+        "server"
+    ]
 }

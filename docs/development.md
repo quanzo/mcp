@@ -13,8 +13,20 @@
 1. Протокольные изменения — только `McpServer` + DTO в `dto/mcp/`
 2. Framing — `StdioTransport` / `StreamableHttpTransport`
 3. Tools — `src/commands/` (`quanzo\mcp\commands`)
-4. HTTP bootstrap — `HttpServerBootstrap` (общий для `bin/http_server*.php`)
-5. **Не добавлять** кастомные JSON-RPC методы и REST «обёртки» над MCP (`mcp.listCommands`, `/api/execute` и т.п.)
+4. Домен поиска — `src/wiki/` (не протокол)
+5. HTTP bootstrap — `HttpServerBootstrap` (общий для `bin/http_server*.php`)
+6. **Не добавлять** кастомные JSON-RPC методы и REST «обёртки» над MCP (`mcp.listCommands`, `/api/execute` и т.п.)
+
+### Live wiki/ollama тесты
+
+`tests/Integration/WikiSearchLiveTest.php` ходит в реальные API (безопасные GET/POST).
+
+```bash
+./vendor/bin/phpunit --filter WikiSearchLiveTest
+```
+
+Offline / недоступный endpoint → `markTestSkipped`.  
+Ollama live — без API key (smoke «сервис отвечает»). Опционально: `MCP_OLLAMA_API_KEY`.
 
 ### Resilience-тесты
 

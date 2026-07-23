@@ -41,6 +41,10 @@ Endpoint: `http://127.0.0.1:8080/mcp`
 | `echo` | Эхо сообщения |
 | `calculate` | Арифметика |
 | `user_create` | Создание пользователя (schema + business isError) |
+| `wiki_search` | Wikipedia ru/en |
+| `ru_wiki_search` | RuWiki |
+| `uni_search` | Универсальный поиск (дефолт Wikipedia) |
+| `ollama_search` | Ollama Web Search (`MCP_OLLAMA_API_KEY` опционален) |
 
 ### Пример ошибки (ожидаемое поведение)
 

@@ -25,3 +25,19 @@ $server->registerCommand(new YourCommand());
 Runtime/business внутри `doExecute` (в т.ч. занятый email в `UserCommand`) → `isError: true` в result.
 
 Каталог tools: `src/commands/` (`quanzo\mcp\commands`).
+
+### Поиск (wiki / ollama)
+
+Домен: `src/wiki/` (`quanzo\mcp\wiki\…`) — searchers, loaders, DTO; не смешивать с протоколом.
+
+| Tool name | Класс | Источник |
+|---|---|---|
+| `wiki_search` | `WikiSearchCommand` | Wikipedia ru+en |
+| `ru_wiki_search` | `RuWikiSearchCommand` | RuWiki |
+| `uni_search` | `UniSearchCommand` | по умолчанию Wikipedia ru+en |
+| `ollama_search` | `OllamaSearchCommand` | Ollama Web Search |
+
+Аргумент: `{ "search": "…" }` (string, minLength 1).  
+Результат: `{ "articles": [ { "title", "content" }, … ] }`.
+
+`MCP_OLLAMA_API_KEY` — опционален; запрос без ключа допускается.

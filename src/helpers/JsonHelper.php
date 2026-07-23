@@ -45,4 +45,34 @@ final class JsonHelper
     {
         return json_decode($json, $assoc, 512, JSON_THROW_ON_ERROR);
     }
+
+    /**
+     * Декодирует JSON в ассоциативный массив (пустой массив при ошибке/null)
+     *
+     * @param string $json JSON-строка
+     *
+     * @return array<mixed>
+     */
+    public static function decodeAssociative(string $json): array
+    {
+        try {
+            $decoded = self::decode($json, true);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Кодирует данные в JSON (синоним encode для совместимости wiki-домена)
+     *
+     * @param mixed $data Данные
+     *
+     * @return string
+     */
+    public static function encodeThrow($data): string
+    {
+        return self::encode($data);
+    }
 }

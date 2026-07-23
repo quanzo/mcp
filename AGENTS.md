@@ -17,6 +17,7 @@
 * `src/classes/transport` - stdio и Streamable HTTP транспорты
 * `src/classes/dto` / `src/classes/dto/mcp` - DTO JSON-RPC и MCP
 * `src/commands` - tools (MCP tools / commands)
+* `src/wiki` - домен поиска Wikipedia/RuWiki/Ollama (обособлен от протокола MCP)
 * `src/classes/resources` - resources
 * `src/classes/client` - MCPClient (stdio)
 * `src/helpers` - хелперы здесь храним
